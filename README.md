@@ -1,8 +1,5 @@
 # Arctic-Grayling
-Population Genomics
 
-Detection and removal of PCR duplicates
+nextflow pipeline for reproducing analysis done under Arctic Grayling
 
-If (de novo) Reference Genome exists, conduct sliding window analyses.
-
-Use of Pippin Prep to increase consistency, precision, and decrease possible contamination. 
+## Background
