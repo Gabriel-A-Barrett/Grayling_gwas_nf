@@ -86,7 +86,7 @@ process demultiplex {
     tag "demultiplexing on pool: ${pair_id}"
     module '/isg/shared/modulefiles/stacks/2.53'
     
-    //publishDir "${params.outdir}/01-process", mode = 'copy', pattern = '*.log'
+    //publishDir "${params.outdir}/01-process", mode: 'copy', patter: '*.log'
 
     input:
     tuple val(pair_id), path(trimmed_reads) from fastp_ch
@@ -114,10 +114,13 @@ process demultiplex {
     """
 }
 
-// function to determine if paired end or not from demultiplex github
+// function to determine if paired end or not from https://github.com/nf-core/demultiplex/blob/dev/workflows/demultiplex.nf
 def getFastqPairName(fqfile) {
+    // variable sampleName with regex pattern to filter for with .find()
     def sampleName = (fqfile =~ /.*\/(.+).[12]\.fq\.gz/)
+    // creates a matcher for the input String
     if (sampleName.find()) {
+        //  prints the pattern matched following regex matcher
         return sampleName.group(1)
     }
     return fqfile
@@ -126,6 +129,7 @@ demult_output_ch
     //.collect ()
     .flatten ()
     .filter { it =~/.*fq.gz/ }
+    // creates a new tuple with matching value
     .map { fastq -> [getFastqPairName(fastq), fastq] }
     .groupTuple ()
     //.view {"filter demultiplex channel $it"}
@@ -133,7 +137,7 @@ demult_output_ch
 
 process bwa {
     cache 'lenient'
-    tag "aligned reads from $pair_id"
+    tag "aligning $pair_id"
     
     module '/isg/shared/modulefiles/bwa/0.7.17'
     module '/isg/shared/modulefiles/samtools/1.9'
@@ -156,12 +160,13 @@ process bwa {
     """
 }
 
+// writes individual reports, need to concatanate reports maybe through collect and bash for loop
 // remove bam records with low alignment rates before calling variants
-process bwa_stats {
-    tag "aligned reads from ${bam}"
+/*process bwa_stats {
+    tag "bwa Stats: ${bam}"
     label 'stats'
 
-    publishDir "${params.outdir}/bwa", mode = 'copy', pattern = "bamstats.tsv"
+    publishDir "${params.outdir}/bwa", mode: 'copy'
     
     module '/isg/shared/modulefiles/samtools/1.9'
 
@@ -169,13 +174,14 @@ process bwa_stats {
     path bam from stats_aligned_reads_ch
 
     output:
-    path 'bamstats.tsv' into bamStats_ch
-    //tuple "${bam}", "${mapping_rate}"
+    path 'mapRate.tsv' into bamStats_ch
+    'bamStats.tsv'
+    'Golden1E06.stats'
 
     script:
     """
     samtools stats ${bam} > ${bam.baseName}.stats
-    // compile individual bam stat reports into 1 file
+    # compile individual bam stat reports into 1 file
     write_BamReport.sh ${bam.baseName}.stats
     """
     
@@ -185,17 +191,17 @@ process bwa_stats {
     """
 }
 
-/* __________________
-* R E A D  R E P O R T
+ __________________
+* R E A D  R E P O R T  C H A N N E L 
 *----------------------
-*/
+
 // Channel correction based on stats file from samtools stats 
 bamStats_ch
     // converts file into channel formating. else prints file literal string
     .splitCsv(sep:'\t', header:false, skip: 1)
     // assign variable to column subsets and convert 2nd col. to class float
     .map ({
-        def bam = path(it[0])
+        def bam = it[0]
         def mapping_rate = it[1].toFloat()
         [ bam, mapping_rate ]
     })
@@ -205,20 +211,24 @@ bamStats_ch
     // retain only bam records
     .filter { it =~ '/Golden*.bam/' }
     .set {cleaned_aligned_reads_ch}
+*/
+
+// Work around: provide csv with files to call variants from 
+    // remove particular bam files using .filter {}
 
 //aligned_reads_ch
     //.filter { it =~ /^Golden1A06.bam/|/^Golden1A08.bam/|/^Golden1B06.bam/|/^Golden1B07.bam/|/^Golden1C07.bam/|/^Golden1C08.bam/|/^Golden1D08.bam/|/^Golden1E06.bam/|/^Golden1E07.bam/|/^Golden1F07.bam/|/^Golden1G05.bam/ }
 
 process variant_calling {
     cache 'lenient'
-    publishDir params.outdir, mode:'copy'
+    publishDir "${params.outdir}/fb", mode:'copy'
     module '/isg/shared/modulefiles/freebayes/1.3.4'
     
     input:
-    path aligned_reads from vcf_aligned_reads_ch // provides points to written bam files in work dir
+    path aln from vcf_aligned_reads_ch.collect() // provides points to written bam files in work dir
     path ref from params.reference
     // from https://github.com/brwnj/freebayes-nf/blob/master/main.nf
-    path aln from cleaned_aligned_reads_ch.collect() // bam ID's to provide to freebayes
+    //path aln from cleaned_aligned_reads_ch.collect() // bam ID's to provide to freebayes
     path idx from index_ch.collect()
     
     output:
@@ -228,7 +238,7 @@ process variant_calling {
     """
     # Noah: write text file using bash
     # ls *.bam > bamlist.txt
-    freebayes -f $ref \
+    freebayes -f ${ref} \
     ${aln.collect { "--bam $it" }.join(" ")} \
     -m 30 -q 20 --min-coverage 100 --skip-coverage 50000 | \
     bgzip -c > fb.vcf.gz
@@ -240,22 +250,24 @@ process variant_calling {
     """
 }
 
-process write_popmap {
-    label 'demon'
+process write_popmap_for_vcfFiltering {
+    label 'little_demon'
+
+    module '/isg/shared/modulefiles/bcftools/1.9'
 
     input:
     path meta from params.meta
     path vcf from fb_popmap_ch
 
     output:
-    path 'popmap.tsv' into popmap_ch
+    path 'popmap.tsv' into popmap_ch, envPrep_popmap_ch
 
     script:
     """
-    bcftools query -l $vcf > vcfsamples.txt
-    awk -F ',' NR==FNR{a[\$1];next} \$1 in a {print \$5 \$8} vcfsamples.txt $meta > popmap.tsv
+    # bcftools query -l $vcf > vcfsamples.txt
+    # awk -F',' 'NR==FNR{a[\$1];next} \$4 in a {print \$4 \$7}' vcfsamples.txt $meta > popmap.tsv
+    awk -F',' 'NR>1 {print \$4 \$7}' $meta > popmap.tsv
     """
-
 }
 
 process variant_filtering {
@@ -264,52 +276,168 @@ process variant_filtering {
     module '/isg/shared/modulefiles/vcftools/0.1.16'
     module '/isg/shared/modulefiles/bcftools/1.9'
 
+    publishDir "${params.outdir}/fb", mode: 'copy'
+
     input:
     path vcf from fb_filtering_ch
     path popmap from popmap_ch
+    // before filtering remove problematic samples, removed low mapping here instead of in bwa_stats
+
     path probSamples from params.probSamples
 
     output:
-    path 'consensus.vcf.gz' into clean_vcf_ch
+    path 'consensus.recode.vcf' into clean_vcf_ch
 
     // incorporate 3rd flag with list of filters to paste. where to make the decision: within process or params
 
     script:
     """
-    variant_filtering.sh ${vcf} ${popmap} ${probsamples} 
+    fb_F_SITE-PIPELINE.sh ${vcf} ${popmap} ${probSamples} #|
+    #perl ${baseDir}/bin/filter_hwe_by_pop.pl -v - -p ${popmap} -h 0.001 -c 0.5 -o 'consensus'
+    #rm *Kup* *Sag* *Col*
     """
 
     stub:
     """
     touch consensus.vcf.gz
     """
-
 }
 
-Channel
-    .from ('lat','elev','pit','temp','abc','udl','cc')
-    .set {env_ch}
+/*process metaToEnv {
+    tag 'little demon'
+    cache: 'leniant'
 
+    input:
+    path meta from params.meta
+    path metaFormatr from params.metaFormatr
+
+    output:
+    path 'BayPass*env' into bpBF_ch
+    path 'BayPass_group.txt' into group_ch
+    path "lfmm*env" into lfmm_ch
+
+    // standardizing input environmental data and converting to BayPass (pop.) and LEA (ind.) env. formats
+    script:
+    """
+    #!/bin/Rscript
+    source("metaFormatr")
+    metaFormatr("${meta}")
+    """
+}*/
+
+/*Channel
+*    .fromList ( ['lat','elev','pit','temp','abc','udl','cc'] )
+*    .set {env_ch}
+*/
+
+// write a channel based on the env. lfmm's in the dir. 
+lfmm_ch = Channel
+    .fromPath ( params.lfmm )
+
+// correct for individuals remaining in study
 process vcf_EnvPrep {
     tag "Prepping $vcf for $env"
     label 'stats'
 
+    publishDir "${params.outdir}/gwas/input_files", mode: 'copy'
+
     module '/isg/shared/modulefiles/bcftools/1.9'
 
     input:
-    val env from env_ch
     path vcf from clean_vcf_ch
-    // baypass populations
+    path lfmm from lfmm_ch
     path group from params.group
-    // LEA env. input file
-    path lfmm from params.lfmm
+    path pop from envPrep_popmap_ch
+
 
     output:
-    path "${env}_${vcf}" into vcfToRDA_ch, vcftoLEA_ch
-    path "*.frq" into vcfToBayPass_ch
+    path "*.vcf" into vcf2RDA_ch 
+    path "*.ped" into ped2LEA_ch, ped2Faststructure
+    path "*.frq" into vcf2BayPass_ch
+    path "*_m_lfmm.env" into env2LEA_ch
+    path "*_popmap" into rda_popmap_ch
 
     script:
     """
-    vcfToEnv.sh ${vcf} ${env} ${group}
+    vcfToENV.sh ${vcf} ${group} ${lfmm}
     """
 }
+
+// create tuple using groovy
+ped2LEA_ch
+    .merge(env2LEA_ch)   
+    .flatten()
+    // writes [abc, vcf] and [abc, lfmm]; creates item in list that is shared ID
+    .map { env -> 
+        // collect String before '_' 
+        def key = env.name.toString().tokenize('_').get(0)
+        // print list with matcher
+        return tuple(key, env) }
+    // adds items to second list based on matcher
+    .groupTuple(size:2)
+    // specify channel for process reading 
+    .set { lea_ch }
+
+process lea {
+    label 'gwas'
+    cache 'lenient'
+
+    publishDir "${params.outdir}/gwas/output_files", mode: 'copy'
+
+    input:
+    // [env, [vcf,env],]
+    tuple val(env), path(files) from lea_ch
+    path fst_func from params.fst_function
+    path lea_func from params.lea_function
+
+    output:
+    path "*_GD_zscores.txt" into lea_GD
+    path "*_EA_zscores.txt" into lea_EA
+
+    script:
+    """
+    #!/usr/bin/env Rscript
+    library("LEA", lib="${params.rlibrariesPath}")
+    library("dplyr", lib="${params.rlibrariesPath}")
+    source("${lea_func}")
+    source('${fst_func}')
+    lea("${env}","${files[0]}","${files[1]}")
+    """
+}
+
+/*process rda {
+    label: 'gwas'
+    cache: 'lenient'
+
+    input:
+    path vcf from vcf2RDA_ch
+    path env from env2RDA_ch
+    path pop from rda_popmap_ch
+
+    output:
+    
+    script:
+    """
+    #!/usr/bin/env Rscript
+    library("vcfR", lib="${params.rlibrariesPath}")
+    library("vegan", lib="${params.rlibrariesPath}")
+    png("rda_plot.png")
+    source("${rda_func}")
+    rda(${vcf},${pop},${env})
+    dev.off()
+    """
+}
+*/
+
+//vcfToBayPass_ch
+//    .merge(envToBayPass_ch)
+
+/*vcfToBayPass_ch
+    .map {env -> 
+    def key = env.name.toString().tokenize('.').get(0)
+    return tuple(key, env) }
+    .view { "$it" }
+*/
+
+
+
