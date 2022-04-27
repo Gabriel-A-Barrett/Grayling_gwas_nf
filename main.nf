@@ -149,7 +149,8 @@ process bwa {
     path index from index_ch
     output:
     
-    path("${pair_id}.bam") into stats_aligned_reads_ch, vcf_aligned_reads_ch
+    path("${pair_id}.bam") into all_aligned_reads_ch
+    path("${pair_id}.stat") into stat_write_report_ch
 
     """
     # change index to explicit literal string
@@ -157,32 +158,31 @@ process bwa {
     samtools view -@ ${task.cpus} -S -h -u - | \
     samtools sort -@ ${task.cpus} - > ${pair_id}.bam
     samtools index -@ ${task.cpus} ${pair_id}.bam
+    samtools stat -@ ${task.cpus} ${pair_id}.bam > ${pair_id}.stat
     """
 }
 
 // writes individual reports, need to concatanate reports maybe through collect and bash for loop
 // remove bam records with low alignment rates before calling variants
-/*process bwa_stats {
+process bwa_stats {
     tag "bwa Stats: ${bam}"
     label 'stats'
 
-    publishDir "${params.outdir}/bwa", mode: 'copy'
+    publishDir "${params.outdir}/bwa", mode: 'copy', pattern: 'bamStats.tsv'
     
     module '/isg/shared/modulefiles/samtools/1.9'
 
     input:
-    path bam from stats_aligned_reads_ch
+    path bam_stat from stat_write_report_ch
 
     output:
-    path 'mapRate.tsv' into bamStats_ch
+    path 'mapRate.tsv' into bam_report_ch
     'bamStats.tsv'
-    'Golden1E06.stats'
-
+    
     script:
     """
-    samtools stats ${bam} > ${bam.baseName}.stats
-    # compile individual bam stat reports into 1 file
-    write_BamReport.sh ${bam.baseName}.stats
+    # Extract Individual stats into 1 tab seperated file
+    write_BamReport.sh ${bam_stat}
     """
     
     stub:
@@ -191,33 +191,25 @@ process bwa {
     """
 }
 
- __________________
-* R E A D  R E P O R T  C H A N N E L 
-*----------------------
+/**********************
+* Remove Records w/ low mapping rates in channel
+************************/
+all_aligned_reads_ch // convert channel to [matcher, bam]
+    .map { bam -> 
+    def key = bam.name.toString().tokenize('.').get(0)
+    return tuple(key, bam)}
+    .set{key_all_aligned_ch}
 
-// Channel correction based on stats file from samtools stats 
-bamStats_ch
-    // converts file into channel formating. else prints file literal string
-    .splitCsv(sep:'\t', header:false, skip: 1)
-    // assign variable to column subsets and convert 2nd col. to class float
-    .map ({
-        def bam = it[0]
-        def mapping_rate = it[1].toFloat()
-        [ bam, mapping_rate ]
-    })
-    .filter ({ bam, mapping_rate -> mapping_rate >= .75}) // retain samples with a mapping greater than 75%
-    // decompose channel into something that looks like one column 
-    .flatten()
-    // retain only bam records
-    .filter { it =~ '/Golden*.bam/' }
+bam_report_ch // Channel correction based on stats file from samtools stats 
+    .splitCsv(sep:'\t', header:false, skip: 1) // converts file into channel formating (each row). else prints file literal string
+    .map { // assign variable to column subsets and convert 2nd col. to class float
+        def key = it[0].toString().tokenize('.').get(0) // similar to cut -d 
+        def mappingrate = it[1].toFloat()
+        [ key, mappingrate ]}
+    .filter ({ key, mappingrate -> mapping_rate >= .75}) // retain samples with a mapping greater than 75%
+    .join(key_all_aligned_ch) // outputs [key, stat, bam]
+    .map { it[2] } // retain only bam records (3rd column)
     .set {cleaned_aligned_reads_ch}
-*/
-
-// Work around: provide csv with files to call variants from 
-    // remove particular bam files using .filter {}
-
-//aligned_reads_ch
-    //.filter { it =~ /^Golden1A06.bam/|/^Golden1A08.bam/|/^Golden1B06.bam/|/^Golden1B07.bam/|/^Golden1C07.bam/|/^Golden1C08.bam/|/^Golden1D08.bam/|/^Golden1E06.bam/|/^Golden1E07.bam/|/^Golden1F07.bam/|/^Golden1G05.bam/ }
 
 process variant_calling {
     cache 'lenient'
@@ -225,10 +217,9 @@ process variant_calling {
     module '/isg/shared/modulefiles/freebayes/1.3.4'
     
     input:
-    path aln from vcf_aligned_reads_ch.collect() // provides points to written bam files in work dir
-    path ref from params.reference
     // from https://github.com/brwnj/freebayes-nf/blob/master/main.nf
-    //path aln from cleaned_aligned_reads_ch.collect() // bam ID's to provide to freebayes
+    path aln from cleaned_aligned_reads_ch.collect()
+    path ref from params.reference
     path idx from index_ch.collect()
     
     output:

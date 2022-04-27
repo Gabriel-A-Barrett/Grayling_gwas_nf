@@ -4,18 +4,18 @@
 #    echo -e "ind\traw_reads\taligned_reads\t0_mapping_quality\tmissmatch\terror_rate" > bamStats.tsv
 #fi
 
-STAT=$1
+bam_files=$1
 
-IND=$(basename $STAT .stats)
-SEQ=$(cat ${STAT} | grep -P $'SN\tsequences:' | awk '{print $3}')
-ALIG=$(cat ${STAT} | grep -P $'SN\treads mapped:' | awk '{print $4}')
-MQ0=$(cat ${STAT} | grep -P $'SN\treads MQ0:' | awk '{print $4}')
-MIS=$(cat ${STAT} | grep -P $'SN\tmismatches:' | awk '{print $3}')
-ER=$(cat ${STAT} | grep -P $'SN\terror rate:' | awk '{print $4}')
-MRATE=$(printf "%2.3f" $(($ALIG / $SEQ)))
-
-echo -e "$IND\t$SEQ\t$ALIG\t$MQ0\t$MIS\t$ER" >> bamStats.tsv
-
-echo -e "${IND}\t${MRATE}" >> mapRate.tsv
-
+for i in ${bam_files[@]}; do
+    STAT=$i
+    IND=$(basename $STAT .stats)
+    SEQ=$(cat ${STAT} | grep -P $'SN\tsequences:' | awk '{print $3}')
+    ALIG="$(cat ${STAT} | grep -P $'SN\treads mapped:' | awk '{print $4}')"
+    MQ0=$(cat ${STAT} | grep -P $'SN\treads MQ0:' | awk '{print $4}')
+    MIS=$(cat ${STAT} | grep -P $'SN\tmismatches:' | awk '{print $3}')
+    ER=$(cat ${STAT} | grep -P $'SN\terror rate:' | awk '{print $4}')
+    MRATE=$(echo "scale=4; $ALIG / $SEQ" | bc)
+    echo -e "$IND\t$SEQ\t$ALIG\t$MQ0\t$MIS\t$ER" >> bamStats.tsv
+    echo -e "${IND}\t${MRATE}" >> mapRate.tsv
+done
 exit
