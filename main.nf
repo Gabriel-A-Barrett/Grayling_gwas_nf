@@ -5,19 +5,15 @@ process index {
     label 'index'
     // denote a list of modules with : seperator 
     module '/isg/shared/modulefiles/bwa/0.7.17'
-
     input:
     path ref from params.reference
-
     output:
     // error if not a glob pattern
     path 'index.*' into index_ch
-
     script:
     """
     bwa index -p index ${ref}
     """
-
     stub:
     """
     touch index.amb
@@ -30,14 +26,10 @@ Channel
     .ifEmpty { error "Cannot find any reads matching: ${params.fq_files}" }
     .set { read_pairs_ch }
 
-//println("barcodes_${read_pairs_ch.replaceAll(/\d+/, "")}.txt") can't apply .replaceAll on channel type
-
-
 process fastp {
     cache 'lenient'
     tag "fastp on ${pair_id}" // associates each process execution with a custom label
     module '/isg/shared/modulefiles/fastp/0.23.2' 
-
     publishDir "${params.outdir}/01-fastp_trimmed", mode: 'copy', pattern: "${pair_id}.html" // publish only html reports
 
     input:
@@ -46,16 +38,14 @@ process fastp {
 
     output:
     tuple val(pair_id), path("trim_${pair_id}_{1,2}.fq.gz") into fastp_ch, fastp_ch1 // place output into a channel for tunneling to next process
-    //path("${pair_id}.{html,log}") // for publishDir
 
-    // execute fastp as if on the command line. Assumes bash
     script:
     """
     fastp -w ${task.cpus} -i ${reads[0]} -I ${reads[1]} \
     -o trim_${reads[0]} -O trim_${reads[1]} \
     --correction -h ${pair_id}.html &> ${pair_id}.log
     """
-
+    // replaces the actual process when the -stub-run or -stub command line option is invoked 
     stub:
     """
     touch trim_Golden{001..012}_{1,2}.fq.gz
@@ -85,7 +75,6 @@ process demultiplex {
     cache 'lenient'
     tag "demultiplexing on pool: ${pair_id}"
     module '/isg/shared/modulefiles/stacks/2.53'
-    
     //publishDir "${params.outdir}/01-process", mode: 'copy', patter: '*.log'
 
     input:
@@ -106,8 +95,6 @@ process demultiplex {
     --inline_null \
     --renz_1 sbfI --renz_2 mseI    
     """
-
-    // replaces the actual process when the -stub-run or -stub command line option is invoked 
     stub:
     """
     touch Golden{1..3}A{01..12}.{1,2}.fq.gz
@@ -128,6 +115,7 @@ def getFastqPairName(fqfile) {
 demult_output_ch
     //.collect ()
     .flatten ()
+    // closure with predicate
     .filter { it =~/.*fq.gz/ }
     // creates a new tuple with matching value
     .map { fastq -> [getFastqPairName(fastq), fastq] }
@@ -138,7 +126,6 @@ demult_output_ch
 process bwa {
     cache 'lenient'
     tag "aligning $pair_id"
-    
     module '/isg/shared/modulefiles/bwa/0.7.17'
     module '/isg/shared/modulefiles/samtools/1.9'
 
@@ -155,8 +142,8 @@ process bwa {
     """
     # change index to explicit literal string
     bwa mem -t ${task.cpus} -R "@RG\\tID:${pair_id}\\tSM:${pair_id}" index ${t_d_reads[0]} ${t_d_reads[1]} | \
-    samtools view -@ ${task.cpus} -S -h -u - | \
-    samtools sort -@ ${task.cpus} - > ${pair_id}.bam
+        samtools view -@ ${task.cpus} -S -h -u - | \
+        samtools sort -@ ${task.cpus} - > ${pair_id}.bam
     samtools index -@ ${task.cpus} ${pair_id}.bam
     samtools stat -@ ${task.cpus} ${pair_id}.bam > ${pair_id}.stat
     """
@@ -167,9 +154,7 @@ process bwa {
 process bwa_stats {
     tag "bwa Stats: ${bam}"
     label 'stats'
-
     publishDir "${params.outdir}/bwa", mode: 'copy', pattern: 'bamStats.tsv'
-    
     module '/isg/shared/modulefiles/samtools/1.9'
 
     input:
@@ -184,7 +169,6 @@ process bwa_stats {
     # Extract Individual stats into 1 tab seperated file
     write_BamReport.sh ${bam_stat}
     """
-    
     stub:
     """
     touch bamstats.tsv
@@ -206,10 +190,45 @@ bam_report_ch // Channel correction based on stats file from samtools stats
         def key = it[0].toString().tokenize('.').get(0) // similar to cut -d 
         def mappingrate = it[1].toFloat()
         [ key, mappingrate ]}
-    .filter ({ key, mappingrate -> mapping_rate >= .75}) // retain samples with a mapping greater than 75%
+    .filter ({ key, mappingrate -> mappingrate >= .75}) // retain samples with a mapping greater than 75%
     .join(key_all_aligned_ch) // outputs [key, stat, bam]
     .map { it[2] } // retain only bam records (3rd column)
     .set {cleaned_aligned_reads_ch}
+
+process index_reference {
+    input:
+    path ref from params.reference
+    output:
+    path '*fai' into ref_index
+    script:
+    """
+    samtools faidx ${ref}
+    """
+}
+
+intervals_ch = ref_index
+    .splitCsv(sep: '\t')
+    // closure with function (->) 
+    .map { row ->
+        if (row[0][0] != "@") {
+            def interval_start = row[1].toLong()
+            def interval_length = row[2].toLong()
+            long start
+            long end
+            int width = 5000000
+
+            while(interval_start < interval_length) {
+                start = interval_start
+                end = interval_start + width + 1000
+                interval_start = end - 1000
+                if (end > interval_length) {
+                    end = interval_length
+                    interval_start = end
+                }
+                intervals_ch.bind( "${row[0]}:${start}-${end}" )
+            }
+        }
+    }
 
 process variant_calling {
     cache 'lenient'
@@ -221,23 +240,62 @@ process variant_calling {
     path aln from cleaned_aligned_reads_ch.collect()
     path ref from params.reference
     path idx from index_ch.collect()
+    each interval from intervals_ch
     
     output:
-    path 'fb.vcf.gz' into fb_filtering_ch, fb_popmap_ch
+    path "fb_${interval.replaceAll(~/\:|\-|\*/, "_")}.vcf.gz" into (vcf_ch, makelist_ch)
+    path "fb_${interval.replaceAll(~/\:|\-|\*/, "_")}.vcf.gz" into vcfidx_ch
 
     script:
     """
     # Noah: write text file using bash
     # ls *.bam > bamlist.txt
-    freebayes -f ${ref} \
-    ${aln.collect { "--bam $it" }.join(" ")} \
-    -m 30 -q 20 --min-coverage 100 --skip-coverage 50000 | \
-    bgzip -c > fb.vcf.gz
+    freebayes \
+        --region ${interval} \
+        --fasta-reference ${ref} \
+        ${aln.collect { "--bam $it" }.join(" ")} \
+        -m 30 -q 20 --min-coverage 100 --skip-coverage 50000 \
+        | bgzip -c > fb_${interval.replaceAll(~/\:|\-|\*/, "_")}.vcf.gz
+        bcftools index fb_${interval.replaceAll(~/\:|\-|\*/, "_")}.vcf.gz
     """
-
     stub:
     """
     touch fb.vcf.gz
+    """
+}
+
+process make_vcf_list {
+    label 'little_demon'
+    input:
+    path vcf from makelist_ch.collect()
+    output:
+    path 'vcfList.txt' into vcfList_ch 
+    script:
+    template 'makelist.py'
+}
+
+process merge_vcfs {
+
+    input:
+    path vcf from vcf_ch.collect()
+    path vcfidx from vcfidx_ch.collect()
+    path fasta from params.reference
+    path faidx from ref_index
+    path vcfList from vcfList_ch
+
+    output:
+    path "fb.vcf.gz" into fb_popmap_ch, fb_filtering_ch
+    path "fb.vcf.gz.tbi"
+
+    script:
+    """
+    gunzip -cd \$(cat ${vcfList}) | vcffirstheader | bgzip -c > fb_dirty.vcf.gz
+    gsort fb_dirty.vcf.gz ${faidx} | vcfuniq \
+        | bgzip -c > fb_dirty_sorted.vcf.gz
+    bcftools norm -c all -f ${fasta} --multiallelics - --threads ${task.cpus} \
+        --output fb.vcf.gz --output-type z \
+        fb_dirty_sorted.vcf.gz
+    tabix -p vcf fb.vcf.gz
     """
 }
 
