@@ -14,7 +14,7 @@ VCFTV=$(vcftools | grep VCF | grep -oh '[0-9]*[a-z]*)$' | sed 's/[a-z)]//')
         fi
 
 if [[ -z "$2" ]]; then
-echo "Usage is pop_missing_filter [vcf] [popmap] [proportion_missing_per_pop] [number_of_pops_for_cutoff] [name_for_output]"
+echo "Usage is pop_hwe_filter [vcf] [popmap] [p-value_deviations_from_hwe] [number_of_pops_for_cutoff] [name_for_output]"
 exit 1
 fi
 
@@ -24,8 +24,8 @@ rm badloci
 for i in "${POPS[@]}"
 do
 grep -w $i $2 | cut -f1 > keep.$i
-vcftools --vcf $1 --keep keep.$i $VCFMISSINGFLAG --out $i 
-awk '!/CHROM/' $i.lmiss | awk -v x=$3 '$6 > x' | cut -f1,2 >> badloci
+vcftools --vcf $1 --keep keep.$i --hardy --out $i
+awk '!/CHROM/' $i.hwe | awk -v x=$3 '$6 > x' | cut -f1,2 >> badloci
 done
 
 awk '!/CH/' badloci | perl -e 'while (<>) {chomp; $z{$_}++;} while(($k,$v) = each(%z)) {print "$v\t$k\n";}' | awk -v x=$4 '$1 >= x' | cut -f2,3  > loci.to.remove
@@ -33,5 +33,3 @@ awk '!/CH/' badloci | perl -e 'while (<>) {chomp; $z{$_}++;} while(($k,$v) = eac
 #sort badloci | uniq > loci.to.remove
 
 vcftools --vcf $1 --exclude-positions loci.to.remove --recode --recode-INFO-all --stdout
-
-

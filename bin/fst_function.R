@@ -1,6 +1,3 @@
-#!/bin/Rscript
-library("LEA", lib="~/local/R_libs/")
-
 fst = function(project,run = 1, K, ploidy = 2){
 library(LEA)
 l = dim(G(project, K = K, run = run))[1]
