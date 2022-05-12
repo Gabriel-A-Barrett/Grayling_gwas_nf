@@ -305,7 +305,7 @@ process merge_vcfs {
     path vcfList from vcfList_ch
 
     output:
-    path "fb.vcf.gz" into fb_popmap_ch, fb_filtering_ch
+    path "fb.vcf.gz" into fb_filtering_ch
     path "fb.vcf.gz.tbi"
 
     script:
@@ -321,7 +321,10 @@ process merge_vcfs {
     """
 }
 
+
+
 process variant_filtering {
+    
     input:
     path vcf from fb_filtering_ch
     path meta from params.meta
@@ -329,18 +332,20 @@ process variant_filtering {
 
     output:
     //path 'consensus.recode.vcf' into clean_vcf_ch
-    tuple path("consensus.vcf"), path("final_indv.txt") into clean_vcf_ch, vcf2gwas_ch
-    path ("final_indv.txt") into vcfIndv_ch
+    tuple path("consensus.vcf"), path("final_indv.txt") into clean_vcf_ch, vcf2gwas_ch, check_out_ch
+    path ("final_indv.txt") into indv2grps_ch
+    stdout vf_result
 
     script:
     template 'fb_F_SITE-PIPELINE.sh'
 
     stub:
     """
-    touch consensus.vcf.gz
+    touch consensus.vcf
     """
 }
-
+vf_result.view()
+check_out_ch.view()
 // split meta into env files for groups w/ data a.k.a genocide
 process meta2grps {
     label 'little_demon'
@@ -348,7 +353,7 @@ process meta2grps {
     input:
     path meta from params.meta
     path writegrps_fun from params.writegrps_function
-    path vcfIndv from vcfIndv_ch
+    path vcfIndv from indv2grps_ch
     output:
     path "*.grp" into grp2baypass_ch, grp2meta2env_ch
 
@@ -389,6 +394,7 @@ process vcf2gwas_ch {
 
 process meta2env {
     cache 'lenient'
+
     input:
     path (meta2env) from params.meta2env_function
     path (meta) from params.meta
