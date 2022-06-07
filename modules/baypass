@@ -1,0 +1,26 @@
+
+process baypass {
+
+    input:
+    tuple val (env), path (files) 
+    val (rep)
+
+    output:
+    tuple val (env), path ("baypass_core_${env}_${rep}_summary_{betai_reg,pi_xtx}.out"), emit: baypass_rawoutput
+    
+    script:
+    def geno = "${files[0]}"
+    def env_file = "${files[1]}"
+    """
+    EPOP="\$(head -n 1 "${env_file}" | awk '{print NF}')"
+    POP="\$(head -n 1 "${geno}" | awk '{print NF}')"
+    if ["\$EPOP" != "\$POP"]; then 
+        echo "different number of populations in environment and genetic dataframes"
+    else
+        g_baypass -npop \${EPOP} -gfile "${geno}" -efile "${env_file}" \
+	    -nval 100 -thin 25 -burnin 50 -npilot 30 -pilotlength 10 \
+	    -outprefix baypass_core_${env}_${rep} \
+	    -nthreads ${task.cpus} -seed "\${RANDOM}"
+    fi
+    """
+}

@@ -1,0 +1,19 @@
+process meta2env {
+    cache 'lenient'
+    input:
+    path (meta)
+    tuple path (grps), path (grp_order)
+
+    output:
+    //tuple path("*.lfmm"), path("*.grp")
+    path ("*.env"), emit: env2lea
+    path ("*.bayenv"), emit: env2bay
+    stdout emit: result
+
+
+    script:
+    """
+    meta_2_env.r "${meta}" "${grps}" "${grp_order}"
+    """
+}
+

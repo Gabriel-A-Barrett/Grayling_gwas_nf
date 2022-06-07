@@ -1,0 +1,27 @@
+process vcf2GWAS {
+    cache 'lenient'
+    tag "working on env: ${grp.getBaseName()}"
+
+    input:
+    path (vcf)
+    each path (grp) 
+    
+    output:
+    path ("*.vcf"), emit: vcf2GWAS
+    path ("*.ped"), emit: ped2env
+    path ("*.frq"), emit: frq2bay
+    tuple path (grp), path ("*.pop_order"), emit: grps2env
+    path ("*.loci"), emit: baypass_loci
+    
+    //def output_vcf = "${vcf.getBaseName().replaceAll(/.bam/,'')}"
+
+    script:
+    """
+    env="\$(basename ${grp} .grp)"
+    awk -F"\t" '{print \$1}' ${grp} > "\${env}_indv.list" 
+    bcftools view -I --force-samples -S "\${env}_indv.list" ${vcf} > "\${env}.vcf"
+    bcftools query -l "\${env}.vcf" > "\${env}.indv"
+    plink1.9 --vcf "\${env}.vcf" --recode  --double-id --allow-extra-chr --out "\${env}"
+    cat "\${env}.vcf" | perl ${baseDir}/bin/vcf2baypass.pl ${grp} "\${env}.frq"
+    """
+}

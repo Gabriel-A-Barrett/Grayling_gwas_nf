@@ -1,0 +1,13 @@
+// takes channel with vcf prefix and path to vcf and outputs list of individuals
+process vcfListIndividuals {
+    tag "${vcf}"
+    label 'little_demon'
+
+    input:
+    path (vcf)
+
+    output:
+    path ("*indv"), emit: vcfIndv
+
+    script:"bcftools query -l ${vcf} > ${vcf.name.replaceAll(/.vcf.gz|.vcf$/,'')}.vcf.indv"
+}

@@ -1,0 +1,14 @@
+def getInputforGWAS(fib, lit) { // write [env, [geno_file, env_file]]
+    fib
+        .mix(lit)
+        .map { env -> 
+            def key = env.name.toString().tokenize(',').get(0)
+            return tuple (key, env)}
+        .groupTuple(size:2)
+}
+
+
+
+
+
+

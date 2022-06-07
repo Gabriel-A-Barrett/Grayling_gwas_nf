@@ -1,0 +1,18 @@
+// outputs 
+process meta2grps {
+    tag "${meta} ${vcfIndvList}"
+    label 'little_demon'
+
+    input:
+    path (meta) 
+    path (vcfIndvList)
+    
+    output:
+    path ("*.grp"), emit: grp2bay
+    //stdout emit: results
+
+    script:
+    """
+    write_grps.r ${meta} ${vcfIndvList}
+    """
+}

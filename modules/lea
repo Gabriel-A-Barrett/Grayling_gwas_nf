@@ -1,0 +1,20 @@
+process lea {
+    label 'gwas'
+    cache 'lenient'
+    //cpus "${task.cpus}"
+
+    input:
+    // [suffix, [vcf, env]]
+    tuple val(env), path(files) 
+
+    output:
+    tuple val (env), path ("*_zscores.txt"), emit: lea_zscores
+    stdout emit: result
+
+    script:
+    def geno = "${files[0]}"
+    def env_file = "${files[1]}"
+    """
+    lea.r "${env}" "${geno}" "${env_file}"
+    """
+}
