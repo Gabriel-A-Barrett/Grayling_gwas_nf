@@ -3,18 +3,18 @@
 args <- commandArgs(trailingOnly=TRUE)
 
 if (length(args) < 3) {
-    stop("Usage: lea.r <env value> <vcf file> <env file>")
+    stop("Usage: lea.r <env value> <ped file> <env file>")
 }
 
 env <- args[1]
-vcf <- args[2]
+ped <- args[2]
 env_file <- args[3]
 
-if(!(file.exists(vcf) && (!file.info(vcf)$isdir))) stop("Second argument '<vcf file>' file does not exist")
+if(!(file.exists(ped) && (!file.info(ped)$isdir))) stop("Second argument '<ped file>' file does not exist")
 if(!(file.exists(env_file) && (!file.info(env_file)$isdir))) stop("Third argument '<env file>' file does not exist")
 
 message("Input meta (Arg 1:) ", env)
-message("Input meta (Arg 2:) ", vcf)
+message("Input meta (Arg 2:) ", ped)
 message("Input meta (Arg 3:) ", env_file)
 
 library(dplyr)
@@ -32,14 +32,14 @@ env <- toString(env) %>% gsub("[[:space:]]","",.)
 # Population Genetic Differientation
 # ~~~~~~~~~~~~~
 
-geno <- ped2geno(vcf, output.file=paste0(env,".geno"), force=TRUE)
+geno <- ped2geno(ped, output.file=paste0(env,".geno"), force=TRUE)
 
 proj.snmf <- snmf(geno,K=latentFactors,entropy=T,ploidy=2,project="new",alpha=10,tolerance=0.0001,repetitions=2,iterations=100,CPU=25,percentage=.75)
 # fst values
 best <- which.min(cross.entropy(proj.snmf, K = latentFactors))
 
 # fst function
-fst = function(project,run = 1, K, ploidy = 2){
+fst <- function(project,run = 1, K, ploidy = 2){
 l = dim(G(project, K = K, run = run))[1]
 q = apply(Q(project, K = K, run = run), MARGIN = 2, mean)
 if (ploidy == 2) {
@@ -66,12 +66,12 @@ colnames(GD_z_scores) <- paste0(env,"_GD_zscores")
 # Latent Factor Mixed Model
 # ~~~~~~~~~~~~~~
 
-lfmm <- ped2lfmm(vcf, output.file=paste0(env,".lfmm"), force=TRUE)
+lfmm <- ped2lfmm(ped, output.file=paste0(env,".lfmm"), force=TRUE)
 
 proj.lfmm <- lfmm(lfmm, env_file, K = latentFactors, repetitions = 2, project = "new", iterations = 100, burnin = 50, CPU = 25, missing.data = TRUE, random.init = TRUE)
 # z-scores from all repititions
 zv <- data.frame(z.scores(proj.lfmm, K = latentFactors))
-zv %>% rowwise() %>% mutate(paste0(env,"_EA_zscores") := median(c_across(everything()))) %>% select(paste0(env,"_EA_zscores")) %>% 
+zv %>% rowwise() %>% mutate("{env}_EA_zscores" := median(c_across(everything()))) %>% select(paste0(env,"_EA_zscores")) %>% 
 cbind(.,GD_z_scores) %>% 
 write.table(x=., file = paste0(env,"_zscores.txt"),quote=F,row.names=F,col.names=T,sep="\t")
 

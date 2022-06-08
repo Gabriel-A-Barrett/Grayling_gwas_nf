@@ -1,0 +1,18 @@
+process baypass_median {
+    label 'little_demon'
+    cache 'lenient'
+
+    input:
+    tuple val (env), path (files) // [env, [all iterations for betai and xtx]]
+    path (loci)
+    val (maxiter)
+
+    output:
+    tuple val (env), path ("${env}_med_baypass.txt"), emit: med_bay
+
+    script:
+    """
+    baypass_median.r "${env}" "${loci}" "${maxiter}"
+    """
+}
+

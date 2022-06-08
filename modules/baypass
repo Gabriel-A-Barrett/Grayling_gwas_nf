@@ -1,9 +1,8 @@
-
 process baypass {
-
+    label 'gwas'
     input:
     tuple val (env), path (files) 
-    val (rep)
+    each rep
 
     output:
     tuple val (env), path ("baypass_core_${env}_${rep}_summary_{betai_reg,pi_xtx}.out"), emit: baypass_rawoutput

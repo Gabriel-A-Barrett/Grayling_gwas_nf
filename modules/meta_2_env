@@ -1,4 +1,5 @@
 process meta2env {
+    label 'little_demon'
     cache 'lenient'
     input:
     path (meta)

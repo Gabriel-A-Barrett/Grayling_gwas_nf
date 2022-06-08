@@ -1,6 +1,6 @@
-include { prepGWAS } from '../subworkflows/Prep_GWAS_Inputs.nf'
+include { prepGWAS } from '../subworkflows/preGWAS.nf'
 include { conductGWAS } from '../subworkflows/conductGWAS.nf'
-//include { postGWAS } from '../subworkflows/'
+include { postGWAS } from '../subworkflows/postGWAS.nf'
 
 bay_iter = channel.from(1..3)
 
@@ -9,9 +9,10 @@ workflow GWAS {
     main:
     prepGWAS ( )
 
-    conductGWAS ( prepGWAS.out.lea, prepGWAS.out.bay)
-
-   //postGWAS (conductGWAS.out)
+    conductGWAS ( prepGWAS.out.lea, prepGWAS.out.bay, prepGWAS.out.loci)
+    conductGWAS.out.gwas_output.view()
+    
+    postGWAS ()
 
 }
 

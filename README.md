@@ -12,8 +12,5 @@ analysis interpretation through presentation of raw code and order of processes.
 
 
 ## ToDo
-
-    1. ensure bwa_stats channel works for variant_calling
-    2. does channel environment split processes and work in variable calls
-    3. vcfToEnv process script needs to be reviewed for proper
-    4. add LEA and BayPass processes
+	1. add snpeff to container for process invoking
+	2. add entap to container for process invoking 

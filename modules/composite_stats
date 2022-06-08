@@ -1,0 +1,16 @@
+process compositeStats {
+
+    input:
+    tuple val(env), path(files)
+
+    output:
+
+    script:
+    def lea_zscores = "${files[0]}"
+    def baypass_median = "${files[1]}"
+    """
+    compositeStats.r "${env}" "${lea_zscores}" "${baypass_median}"
+    """
+
+
+}

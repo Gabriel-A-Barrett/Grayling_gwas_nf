@@ -1,7 +1,7 @@
 process vcf2GWAS {
     cache 'lenient'
     tag "working on env: ${grp.getBaseName()}"
-
+    
     input:
     path (vcf)
     each path (grp) 
