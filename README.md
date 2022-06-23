@@ -10,7 +10,9 @@ analysis interpretation through presentation of raw code and order of processes.
 
 ## Usage
 
+`nextflow run main.nf -entry NF_GWAS -with-singulariy gwas-nf.sif`
 
 ## ToDo
+	1. add harmonicDist() and write outlier gene list and manhattan plots
 	1. add snpeff to container for process invoking
-	2. add entap to container for process invoking 
+	2. add entap to container for process invoking

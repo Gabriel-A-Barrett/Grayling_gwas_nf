@@ -1,0 +1,15 @@
+process combineEnv {
+    publishDir 
+    cache 'lenient'
+    
+    input:
+    path (outliers)
+
+    output:
+    path ("*.txt"), emit: 
+
+    script:
+    """
+    combineEnv.r ${files}
+    """
+}

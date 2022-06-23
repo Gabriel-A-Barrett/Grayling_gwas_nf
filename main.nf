@@ -8,9 +8,6 @@ Gabriel-A-Barrett/grayling-gwas
 -----------------------------------------------------------------------
 */
 
-// Parameters
-//params.vcf = 
-//params.meta = 
 
 include { GWAS } from './workflows/GWAS.nf'
 

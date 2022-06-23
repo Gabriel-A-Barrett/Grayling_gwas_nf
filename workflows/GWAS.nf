@@ -9,10 +9,9 @@ workflow GWAS {
     main:
     prepGWAS ( )
 
-    conductGWAS ( prepGWAS.out.lea, prepGWAS.out.bay, prepGWAS.out.loci)
-    conductGWAS.out.gwas_output.view()
-    
-    postGWAS ()
+    conductGWAS ( prepGWAS.out.lea, prepGWAS.out.bay, prepGWAS.out.loci )
+
+    postGWAS ( conductGWAS.out.gwas_output )
 
 }
 

@@ -15,7 +15,6 @@ workflow conductGWAS {
     bay_input
     loci
 
-
     main:
     lea (lea_input)
     baypass (bay_input, bay_iter)
