@@ -1,0 +1,1 @@
+/home/FCAM/gbarrett/Grayling_gwas_nf/work/f1/2ca323aa29828c60a54fff51531f89/H2_Aufeis_above_below_coast_SNPs_df.txt

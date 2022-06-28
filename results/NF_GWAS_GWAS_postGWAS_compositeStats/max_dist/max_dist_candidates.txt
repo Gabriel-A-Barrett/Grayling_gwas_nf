@@ -1,0 +1,1 @@
+/home/FCAM/gbarrett/Grayling_gwas_nf/work/07/65792b4660c37b63a7859d7b528e0a/max_dist_candidates.txt
