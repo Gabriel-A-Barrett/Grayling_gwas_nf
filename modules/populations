@@ -1,0 +1,32 @@
+process populations {
+
+    publishDir "${params.outdir}/${task.process.replaceAll(':', '_')}", enabled: true, mode: 'copy'
+    module "stacks/2.53"
+    memory = 95.GB
+    clusterOptions = "--qos=himem --general=himem"
+
+
+    input:
+    path (vcf)
+    path (meta)
+
+    output:
+    path ("populatons/populations.sumstats_summary.tsv"), emit: popSumStats
+    path ("populations/populations.sumstats.tsv"), emit: siteSumStats
+
+    script:
+    """
+    #POPS=(`cut -f2 \$2 | sort | uniq`)
+
+    #for i in "\${POPS[@]}"
+    #do
+        #grep -w \${i} \${2} | cut -f1 > \${i}_popmap.txt
+
+        #populations -V
+    
+    awk -F, '{print \$1"\t"\$2}' ${meta} > popmap.txt
+    mkdir populations
+    populations -V ${vcf} -M popmap.txt --threads ${task.cpus} -O populations
+    """
+
+}

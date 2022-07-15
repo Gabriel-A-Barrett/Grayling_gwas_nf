@@ -4,14 +4,14 @@ process compositeStats {
     cache 'lenient'
     //errorStrategy 'ignore'
     input:
-    tuple val(env), path(baypass), path (lea)
+    tuple val (env), path (baypass), path (lea)
     path (snpeff)
     path (entap)
     path (reference_headers_key)
 
     output:
     stdout emit: composite_stdout
-    path ("${env}_SNPs_df.txt"), emit: dataframe
+    //path ("${env}_SNPs_df.txt"), emit: dataframe
     path ("*.png")
     path ("${env}_candidates.txt"), emit: candidates
 
@@ -27,16 +27,17 @@ process combineEnv {
     cache 'lenient'
 
     input:
-    path (files)
+    path (candidates)
 
     output:
     stdout emit: results
-    
-    //path ("*.txt"), emit: geneCandidates
+    path ("Summary_Candidates.txt"), emit: summaryCandidates
+    path ("FinalResults_Candidates.txt"), emit: finalresultsCandidates
+    path ("*.png"), emit: pictures
 
     script:
     """
-    combineEnv.r "${files}"
+    combineEnv.r "${candidates}"
     """
     
 }

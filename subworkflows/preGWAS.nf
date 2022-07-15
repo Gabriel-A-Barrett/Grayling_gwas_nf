@@ -5,6 +5,7 @@ include { vcfListIndividuals } from "../modules/vcf_list_individuals"
 include { meta2grps } from "../modules/meta_2_grps"
 include { vcf2GWAS } from "../modules/vcf_2_GWAS"
 include { meta2env } from "../modules/meta_2_env"
+include { populations } from "../modules/populations"
 //include { functions } from '../modules/fun_library' get message cannot find a component with the name 'function'
 
 workflow prepGWAS {
@@ -14,6 +15,7 @@ workflow prepGWAS {
     //meta 
 
     main:
+    populations (params.vcf, params.meta) // provides segmentation fault error, trying himem
     vcfListIndividuals ( params.vcf ) // get list of indv. in consesus.vcf 
     meta2grps ( params.meta, vcfListIndividuals.out.vcfIndv ) // get groups for baypass 
     vcf2GWAS ( params.vcf, meta2grps.out.grp2bay ) // subset vcf file and write baypass format

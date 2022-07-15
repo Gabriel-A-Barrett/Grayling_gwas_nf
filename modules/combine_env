@@ -6,10 +6,11 @@ process combineEnv {
     path (outliers)
 
     output:
-    path ("*.txt"), emit: 
+    //path ("*.txt"), emit: combine
+    stdout emit: stdout
 
     script:
     """
-    combineEnv.r ${files}
+    combineEnv.r "${files.collect {"${it}"}.print()}"
     """
 }

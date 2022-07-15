@@ -40,7 +40,7 @@ header_key <- read.table(header_key,sep="",header=FALSE,col.names=c("chrom","chr
 
 lea <- read.table(lea,h=T,sep="")
 
-baypass <- read.table(baypass,sep="\t",h=T) #%>% select(!(n))
+baypass <- read.table(baypass,sep="\t",h=T) #%>% select(!(ends_with("Pearson")))
 
 entap <- read.delim(entap, h=T, fill=T,sep="\t", na.strings=c("","NA"))  %>% 
     select(feature_id=Query.Sequence,EggNOG.Predicted.Gene,EggNOG.Description,EggNOG.GO.Biological)
@@ -68,11 +68,11 @@ SNPs_df <- left_join(vcf_df_fix %>% group_by(feature_id) %>% dplyr::mutate(id1 =
                         # necessary for downstream processes?? forget where..... :(
                         ungroup()
 
-write.table(file=paste0(env,"_SNPs_df.txt"),x=SNPs_df,row.names=FALSE,col.names=TRUE,quote=FALSE)
+# write.table(file=paste0(env,"_SNPs_df.txt"),x=SNPs_df,row.names=FALSE,col.names=TRUE,quote=FALSE)
 
 png(paste0(env,"_univariateHist.png"))
-par(mfrow=c(2,2))
-for (stat in c("XtX","GD","BF","EA")) {
+par(mfrow=c(2,3))
+for (stat in c("XtX","GD","BF","EA", "Pearson")) {
 
     column <- paste0(env,"_",stat)
     
@@ -98,13 +98,14 @@ SNPs_df %>%
     #group_by(gene_name = SNPs_df$gene_name) %>%
     #dplyr::summarise(gene_count=n()) %>% 
     #ungroup() %>%
+    mutate(env = paste0(env), id = paste0(chrom_id,":",pos)) %>%
     select(chrom_id, pos, annotation, gene_name,
             annotation_impact,HGVS.p,
             EggNOG.Predicted.Gene,EggNOG.Description,
-            EggNOG.GO.Biological,chrom,pvalue) %>%
-    filter(pvalue < .001) %>% 
-    arrange(desc(pvalue)) %>%
-    write.table(file=paste0(env,"_candidates.txt"),x=.,quote=FALSE,col.names=TRUE,row.names=TRUE)
+            EggNOG.GO.Biological,chrom,env,id,pvalue) %>% 
+    filter(pvalue < .000001) %>% 
+    arrange(pvalue) %>%
+    write.table(file=paste0(env,"_candidates.txt"),x=.,quote=FALSE,col.names=TRUE,row.names=TRUE,sep="\t")
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Manhattan Plot
@@ -128,16 +129,18 @@ axis_df <- don %>%
     group_by(chrom) %>%    
     dplyr::summarize(center=(max(BPcum) + min(BPcum)) / 2)
 
-png(paste0(env,"_manhattanplot.png"))
-ggplot(don, aes(x=BPcum, y=pvalue)) +
+png(paste0(env,"_manhattanplot.png"), width=1200, height=210)
+manhattan <- ggplot(don, aes(x=BPcum, y=-log10(pvalue))) +
     # Show all points
     geom_point(aes(color=as.factor(chrom)), alpha=0.85, size=2.3) +
+    # Rotate between grey and lightgrey colors
     scale_color_manual(values = rep(c("grey", "lightgrey"), 22 )) +
     #geom_point(data=subset(don, is_highlight=="yes"), color="orange", size=2.7) + 
     
-    # custom X axis:
+    # custom X axis
     scale_x_continuous(label = axis_df$chrom, breaks= axis_df$center, expand=c(0,0)) + xlab("") + ylab("") +
-    scale_y_continuous(expand = c(0, 0), limits = c(min(don$pvalue) -.25, min(don$pvalue) + .5)) + ylab("") + ylab(paste0(env)) + #labs(subtitle=paste0("n = ",NumberOfIndividuals)) +  # remove space between plot area and x axis with expand ORIGINAL: max(don$harmony) + 1
+    # Custom Y axis
+    scale_y_continuous(expand = c(0, 0), limits = c(min(-log10(don$pvalue)) -.25, max(-log10(don$pvalue)) + .5)) + ylab("") + ylab(paste0(env)) + #labs(subtitle=paste0("n = ",NumberOfIndividuals)) +  # remove space between plot area and x axis with expand ORIGINAL: max(don$harmony) + 1
   
     # Custom the theme:
     theme_bw() +
@@ -149,5 +152,8 @@ ggplot(don, aes(x=BPcum, y=pvalue)) +
       axis.title = element_text(size = 20),
       axis.title.y=element_text(angle=90,hjust=1),
       axis.text.y=element_text(size=12)) + 
-      geom_hline(yintercept = .001, linetype="dashed", size = .35, colour = "red")
+      geom_hline(yintercept = -log10(.000001), linetype="dashed", size = .35, colour = "red")
+
+print(manhattan)
+
 dev.off()
