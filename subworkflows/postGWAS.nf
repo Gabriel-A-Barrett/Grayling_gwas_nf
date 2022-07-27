@@ -7,7 +7,7 @@ workflow postGWAS {
     
     main:
     compositeStats (gwas, params.ann_vcf, params.fullentap, params.headers_key)
-    combineEnv (compositeStats.out.candidates.collect())
+    combineEnv (compositeStats.out.candidates.collect(), params.meta, params.vcf) // rscript taking 3 inputs, script writes the third one "genotypes.txt" w/ bcftools 
 
 }
 

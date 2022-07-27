@@ -98,12 +98,12 @@ SNPs_df %>%
     #group_by(gene_name = SNPs_df$gene_name) %>%
     #dplyr::summarise(gene_count=n()) %>% 
     #ungroup() %>%
-    mutate(env = paste0(env), id = paste0(chrom_id,":",pos)) %>%
-    select(chrom_id, pos, annotation, gene_name,
+    mutate(env = paste0(env), id = paste0(chrom_id,"_",pos)) %>%
+    select(id, annotation, gene_name,
             annotation_impact,HGVS.p,
             EggNOG.Predicted.Gene,EggNOG.Description,
-            EggNOG.GO.Biological,chrom,env,id,pvalue) %>% 
-    filter(pvalue < .000001) %>% 
+            EggNOG.GO.Biological,chrom,env,pvalue) %>% 
+    filter(pvalue < .00001) %>% 
     arrange(pvalue) %>%
     write.table(file=paste0(env,"_candidates.txt"),x=.,quote=FALSE,col.names=TRUE,row.names=TRUE,sep="\t")
 
@@ -129,7 +129,7 @@ axis_df <- don %>%
     group_by(chrom) %>%    
     dplyr::summarize(center=(max(BPcum) + min(BPcum)) / 2)
 
-png(paste0(env,"_manhattanplot.png"), width=1200, height=210)
+png(paste0(env,"_manhattanplot.png"), width=1285, height=240)
 manhattan <- ggplot(don, aes(x=BPcum, y=-log10(pvalue))) +
     # Show all points
     geom_point(aes(color=as.factor(chrom)), alpha=0.85, size=2.3) +

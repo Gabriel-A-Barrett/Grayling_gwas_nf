@@ -27,17 +27,20 @@ process combineEnv {
     cache 'lenient'
 
     input:
-    path (candidates)
+    path (compositeStats)
+    path (meta)
+    path (vcf)
 
     output:
     stdout emit: results
     path ("Summary_Candidates.txt"), emit: summaryCandidates
     path ("FinalResults_Candidates.txt"), emit: finalresultsCandidates
-    path ("*.png"), emit: pictures
+    path ("*/*.png"), emit: pictures
 
     script:
     """
-    combineEnv.r "${candidates}"
+    bcftools query -f 'CHROM\tPOS\tREF\tALT[\t%SAMPLE]\n' ${vcf} | head -1 > genotypes.txt && bcftools query -f '%CHROM\t%POS\t%REF\t%ALT[\t%GT]\n' ${vcf} >> genotypes.txt
+    combineEnv.r "${meta}" 'genotypes.txt'
     """
     
 }
