@@ -4,14 +4,14 @@ process compositeStats {
     cache 'lenient'
     //errorStrategy 'ignore'
     input:
-    tuple val(env), path(baypass), path (lea)
+    tuple val (env), path (baypass), path (lea)
     path (snpeff)
     path (entap)
     path (reference_headers_key)
 
     output:
     stdout emit: composite_stdout
-    path ("${env}_SNPs_df.txt"), emit: dataframe
+    //path ("${env}_SNPs_df.txt"), emit: dataframe
     path ("*.png")
     path ("${env}_candidates.txt"), emit: candidates
 
@@ -27,16 +27,20 @@ process combineEnv {
     cache 'lenient'
 
     input:
-    path (files)
+    path (compositeStats)
+    path (meta)
+    path (vcf)
 
     output:
     stdout emit: results
-    
-    //path ("*.txt"), emit: geneCandidates
+    path ("Summary_Candidates.txt"), emit: summaryCandidates
+    path ("FinalResults_Candidates.txt"), emit: finalresultsCandidates
+    path ("*/*.png"), emit: pictures
 
     script:
     """
-    combineEnv.r "${files}"
+    bcftools query -f 'CHROM\tPOS\tREF\tALT[\t%SAMPLE]\n' ${vcf} | head -1 > genotypes.txt && bcftools query -f '%CHROM\t%POS\t%REF\t%ALT[\t%GT]\n' ${vcf} >> genotypes.txt
+    combineEnv.r "${meta}" 'genotypes.txt'
     """
     
 }

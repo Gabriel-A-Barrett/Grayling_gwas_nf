@@ -34,7 +34,7 @@ env <- toString(env) %>% gsub("[[:space:]]","",.)
 
 geno <- ped2geno(ped, output.file=paste0(env,".geno"), force=TRUE)
 
-proj.snmf <- snmf(geno,K=latentFactors,entropy=T,ploidy=2,project="new",alpha=10,tolerance=0.0001,repetitions=15,iterations=10000,CPU=4,percentage=.05)
+proj.snmf <- snmf(geno,K=latentFactors,entropy=T,ploidy=2,project="new",alpha=10,tolerance=0.00001,repetitions=15,iterations=10000,CPU=4,percentage=.05)
 # fst values
 best <- which.min(cross.entropy(proj.snmf, K = latentFactors))
 

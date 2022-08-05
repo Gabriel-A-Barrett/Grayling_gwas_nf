@@ -1,1 +1,1 @@
-/home/FCAM/gbarrett/Grayling_gwas_nf/work/86/c7dac561dcca48559c575f5a679a51/H3_JulyAug_Temp_Med_SNPs_df.txt
+/home/FCAM/gbarrett/Grayling_gwas_nf/work/a2/96a2a2af20e5f58e55f77431f6ba38/H3_JulyAug_Temp_Med_SNPs_df.txt

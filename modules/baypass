@@ -18,7 +18,7 @@ process baypass {
         echo "different number of populations in environment and genetic dataframes"
     else
         g_baypass -npop \${EPOP} -gfile "${geno}" -efile "${env_file}" \
-	    -nval 1000 -thin 25 -burnin 5000 -npilot 30 -pilotlength 25 \
+	    -nval 1000 -thin 30 -burnin 5000 -npilot 30 -pilotlength 1000 \
 	    -outprefix baypass_core_${env}_${rep} \
 	    -nthreads ${task.cpus} -seed "\${RANDOM}"
     fi

@@ -1,0 +1,46 @@
+process fastStructure {
+    tag "${file}"
+    publishDir "${params.outdir}/fastStructure", enabled: true, mode: 'copy'
+    module "fastStructure/1.0"
+    memory = 5.GB
+    //clusterOptions = "--qos=general --general=general"
+
+    input:
+    path (file)
+    each model_complexity
+
+    output:
+    path ("${file.getBaseName()}.meanQ"), emit: meanQ
+
+    script:
+
+    if ("${file}".endsWith(".vcf.gz") | "${file}".endsWith(".vcf")) {
+        """
+        plink --vcf ${file} 
+        fastStructure.py -K "${model_complexity}" --input "${file}" --output
+        """
+    }
+    else if ("${file}".endsWith(".ped")) {
+        """
+        fastStructure.py -K "${model_complexity}" --input "${file}" --output "${file.getBaseName()}"
+        """
+    }
+    else {println "Unsupported input to fastStructure. Handles gzipped vcf, vcf, and ped files"}
+}
+
+process fastStructureVis {
+
+    publishDir "${params.outdir}/fastStructure", enabled: true, mode: 'copy'
+
+    input:
+    path (meanQ)
+
+    output:
+    path ("*.png"), emit: images
+
+    script:
+    """
+    fastStructure.r 
+    """
+
+}
