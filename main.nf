@@ -8,12 +8,20 @@ Gabriel-A-Barrett/grayling-gwas
 -----------------------------------------------------------------------
 */
 
-// Parameters
-//params.vcf = 
-//params.meta = 
+log.info """\
+         R N A T O Y   P I P E L I N E    
+         =============================
+         meta: ${params.meta}
+         vcf : ${params.vcf}
+         reads : ${params.reads}
+         EnTAP: ${params.fullentap}
+         """
+         .stripIndent()
+
 
 include { GWAS } from './workflows/GWAS.nf'
 
+// when defining a workflow you must use -entry with nextflow run 
 workflow NF_GWAS {    
     GWAS ()
 }
@@ -21,7 +29,3 @@ workflow NF_GWAS {
 workflow.onComplete {
 	log.info ( workflow.success ? "\nDone! Open the following report in your browser --> $params.outdir\n" : "Oops .. something went wrong" )
 }
-
-
-
-// use -entry to narrow focus to NF_GWAS workflow
