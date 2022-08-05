@@ -1,0 +1,1 @@
+/home/FCAM/gbarrett/Grayling_gwas_nf/work/6d/62e7d8079ace405fae3ecaa34f8648/H1_coast_noncoast_SNPs_df.txt

@@ -1,0 +1,1 @@
+/home/FCAM/gbarrett/Grayling_gwas_nf/work/83/b3e2de30f8160dbd981c3eb6cb9c3e/min_dist_SNPs_df.txt

@@ -1,0 +1,1 @@
+/home/FCAM/gbarrett/Grayling_gwas_nf/work/53/306b99a748e7828c264b60f644e042/latitude_SNPs_df.txt

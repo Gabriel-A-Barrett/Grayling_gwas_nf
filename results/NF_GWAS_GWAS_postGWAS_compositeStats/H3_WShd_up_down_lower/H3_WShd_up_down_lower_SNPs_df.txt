@@ -1,0 +1,1 @@
+/home/FCAM/gbarrett/Grayling_gwas_nf/work/99/1de521e43429e28274bc93ea50fb6a/H3_WShd_up_down_lower_SNPs_df.txt

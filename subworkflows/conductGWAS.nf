@@ -15,7 +15,6 @@ workflow conductGWAS {
     bay_input
     loci
 
-
     main:
     lea (lea_input)
     baypass (bay_input, bay_iter)
@@ -27,5 +26,7 @@ workflow conductGWAS {
     emit:
     gwas_output = baypass_median.out.med_bay
         .join(lea.out.lea_zscores)
-
+    
+    //baypass_med = baypass_median.out.med_bay
+    //lea_med = lea.out.lea_zscores
 }

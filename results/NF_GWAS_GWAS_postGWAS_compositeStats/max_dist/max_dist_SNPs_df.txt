@@ -1,0 +1,1 @@
+/home/FCAM/gbarrett/Grayling_gwas_nf/work/59/130160493e637704d5b8752cd8cc41/max_dist_SNPs_df.txt

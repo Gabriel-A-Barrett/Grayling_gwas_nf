@@ -1,0 +1,52 @@
+process populations {
+    //tag "${regions}"
+    //publishDir "${params.outdir}/${task.process.replaceAll(':', '_')}", enabled: true, mode: 'copy'
+    publishDir "${params.outdir}/population_stats", enabled: true, mode: 'copy'
+    module "stacks/2.41"
+    memory = 45.GB
+    //clusterOptions = "--qos=general --general=general"
+
+    input:
+    path (vcf)
+    path (meta)
+    //each regions
+
+    output:
+    path ("${vcf.getBaseName()}.p.sumstats_summary.tsv"), emit: popSumStats
+    path ("${vcf.getBaseName()}.p.sumstats.tsv"), emit: siteSumStats
+    path ("${vcf.getBaseName()}.p.phistats_summary.tsv"), emit: fstSumStats
+
+    script:
+    """
+    bcftools query -l ${vcf} > vcfIndv.txt
+    
+    awk -F ',' 'NR==FNR {a[\$1];next} (\$1 in a) {print \$1"\t"\$2}' vcfIndv.txt ${meta} > popmap.tsv # correct for any removed samples
+    
+    populations -V ${vcf} -M popmap.tsv -O ./ --fstats
+    
+    """
+}
+
+process populationsVis {
+
+    publishDir "${params.outdir}/population_stats", enabled: true, mode: 'copy'
+
+    input:
+    path (popSumStats)
+    path (fstSumStats)
+
+    output:
+    path ("*.png"), emit: images
+    path ("*.md"), emit: markdown
+
+    script:
+    """
+    populations.r "${popSumStats}" "${fstSumStats}"
+    """
+
+
+
+
+
+
+}

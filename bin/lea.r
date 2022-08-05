@@ -34,7 +34,7 @@ env <- toString(env) %>% gsub("[[:space:]]","",.)
 
 geno <- ped2geno(ped, output.file=paste0(env,".geno"), force=TRUE)
 
-proj.snmf <- snmf(geno,K=latentFactors,entropy=T,ploidy=2,project="new",alpha=10,tolerance=0.0001,repetitions=2,iterations=100,CPU=25,percentage=.75)
+proj.snmf <- snmf(geno,K=latentFactors,entropy=T,ploidy=2,project="new",alpha=10,tolerance=0.00001,repetitions=15,iterations=10000,CPU=4,percentage=.05)
 # fst values
 best <- which.min(cross.entropy(proj.snmf, K = latentFactors))
 
@@ -60,7 +60,7 @@ n <- dim(Q(proj.snmf, K = latentFactors, run = best))[1]
 fst.values[fst.values<0] <- 0.000001
 GD_z_scores <- sqrt(fst.values*(n - latentFactors)/(1 - fst.values))
 GD_z_scores <- as.data.frame(GD_z_scores)
-colnames(GD_z_scores) <- paste0(env,"_GD_zscores")
+colnames(GD_z_scores) <- paste0(env,"_GD")
 
 # ~~~~~~~~~~~~~~
 # Latent Factor Mixed Model
@@ -68,10 +68,10 @@ colnames(GD_z_scores) <- paste0(env,"_GD_zscores")
 
 lfmm <- ped2lfmm(ped, output.file=paste0(env,".lfmm"), force=TRUE)
 
-proj.lfmm <- lfmm(lfmm, env_file, K = latentFactors, repetitions = 2, project = "new", iterations = 100, burnin = 50, CPU = 25, missing.data = TRUE, random.init = TRUE)
+proj.lfmm <- lfmm(lfmm, env_file, K = latentFactors, repetitions = 15, project = "new", iterations = 10000, burnin = 5000, CPU = 4, missing.data = TRUE, random.init = TRUE)
 # z-scores from all repititions
 zv <- data.frame(z.scores(proj.lfmm, K = latentFactors))
-zv %>% rowwise() %>% mutate("{env}_EA_zscores" := median(c_across(everything()))) %>% select(paste0(env,"_EA_zscores")) %>% 
+zv %>% rowwise() %>% mutate("{env}_EA" := median(c_across(everything()))) %>% select(paste0(env,"_EA")) %>% 
 cbind(.,GD_z_scores) %>% 
 write.table(x=., file = paste0(env,"_zscores.txt"),quote=F,row.names=F,col.names=T,sep="\t")
 

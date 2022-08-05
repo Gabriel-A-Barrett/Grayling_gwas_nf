@@ -18,8 +18,9 @@ process vcf2GWAS {
     script:
     """
     env="\$(basename ${grp} .grp)"
-    awk -F"\t" '{print \$1}' ${grp} > "\${env}_indv.list" 
-    bcftools view -I --force-samples -S "\${env}_indv.list" ${vcf} > "\${env}.vcf"
+    awk -F"\t" '{print \$1" "\$1" "\$2" "\$1}' ${grp} > "\${env}_indv.list"
+    plink1.9 --vcf ${vcf} --keep "\${env}_indv.list" --recode vcf-iid --allow-extra-chr --out "\${env}"
+    #bcftools view -I --force-samples -S "\${env}_indv.list" ${vcf} > "\${env}.vcf"
     bcftools query -l "\${env}.vcf" > "\${env}.indv"
     plink1.9 --vcf "\${env}.vcf" --recode  --double-id --allow-extra-chr --out "\${env}"
     cat "\${env}.vcf" | perl ${baseDir}/bin/vcf2baypass.pl ${grp} "\${env}.frq"

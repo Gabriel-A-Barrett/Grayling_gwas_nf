@@ -8,6 +8,7 @@ Gabriel-A-Barrett/grayling-gwas
 -----------------------------------------------------------------------
 */
 
+<<<<<<< HEAD
 log.info """\
          R N A T O Y   P I P E L I N E    
          =============================
@@ -18,6 +19,8 @@ log.info """\
          """
          .stripIndent()
 
+=======
+>>>>>>> 5c0a2d26d78f250c7e7e3d4396a465f5996f244a
 
 include { GWAS } from './workflows/GWAS.nf'
 

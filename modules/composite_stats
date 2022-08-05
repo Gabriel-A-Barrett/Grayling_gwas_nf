@@ -1,16 +1,46 @@
 process compositeStats {
-
+    publishDir "${params.outdir}/${task.process.replaceAll(':', '_')}/${env}", enabled: true
+    label 'little_demon'
+    cache 'lenient'
+    //errorStrategy 'ignore'
     input:
-    tuple val(env), path(files)
+    tuple val (env), path (baypass), path (lea)
+    path (snpeff)
+    path (entap)
+    path (reference_headers_key)
 
     output:
+    stdout emit: composite_stdout
+    //path ("${env}_SNPs_df.txt"), emit: dataframe
+    path ("*.png")
+    path ("${env}_candidates.txt"), emit: candidates
 
     script:
-    def lea_zscores = "${files[0]}"
-    def baypass_median = "${files[1]}"
     """
-    compositeStats.r "${env}" "${lea_zscores}" "${baypass_median}"
+    compositeStats.r "${env}" "${baypass}" "${lea}" "${snpeff}" "${entap}" "${reference_headers_key}"
     """
+}
 
+process combineEnv {
+    publishDir "${params.outdir}/${task.process.replaceAll(':', '_')}", enabled: true
+    label 'little_demon'
+    cache 'lenient'
 
+    input:
+    path (compositeStats)
+    path (meta)
+    path (vcf)
+
+    output:
+    stdout emit: results
+    path ("Summary_Candidates.txt"), emit: summaryCandidates
+    path ("FinalResults_Candidates.txt"), emit: finalresultsCandidates
+    path ("*/*.png"), emit: pictures
+
+    script:
+    """
+    bcftools query -f 'CHROM\tPOS\tREF\tALT[\t%SAMPLE]\n' ${vcf} | head -1 > genotypes.txt && bcftools query -f '%CHROM\t%POS\t%REF\t%ALT[\t%GT]\n' ${vcf} >> genotypes.txt
+    combineEnv.r "${meta}" 'genotypes.txt'
+    """
+    
 }

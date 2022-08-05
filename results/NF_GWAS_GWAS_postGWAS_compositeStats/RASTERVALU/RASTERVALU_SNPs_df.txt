@@ -1,0 +1,1 @@
+/home/FCAM/gbarrett/Grayling_gwas_nf/work/31/cac3336b7e8e76b35414f679bdad78/RASTERVALU_SNPs_df.txt

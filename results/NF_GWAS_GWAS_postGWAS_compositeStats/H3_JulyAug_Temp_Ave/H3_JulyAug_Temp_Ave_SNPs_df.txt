@@ -1,0 +1,1 @@
+/home/FCAM/gbarrett/Grayling_gwas_nf/work/62/7419149bbc3e5240b1962de22eeaf2/H3_JulyAug_Temp_Ave_SNPs_df.txt
