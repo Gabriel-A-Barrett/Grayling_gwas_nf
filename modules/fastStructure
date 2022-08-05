@@ -7,6 +7,7 @@ process fastStructure {
 
     input:
     path (file)
+    each model_complexity
 
     output:
     path ("${file.getBaseName()}.meanQ"), emit: meanQ
@@ -16,12 +17,12 @@ process fastStructure {
     if ("${file}".endsWith(".vcf.gz") | "${file}".endsWith(".vcf")) {
         """
         plink --vcf ${file} 
-        fastStructure.py
+        fastStructure.py -K "${model_complexity}" --input "${file}" --output
         """
     }
-    else if ("${file}".endsWith(".ped")){
+    else if ("${file}".endsWith(".ped")) {
         """
-        fastStructure.py ${file}
+        fastStructure.py -K "${model_complexity}" --input "${file}" --output "${file.getBaseName()}"
         """
     }
     else {println "Unsupported input to fastStructure. Handles gzipped vcf, vcf, and ped files"}
@@ -29,19 +30,17 @@ process fastStructure {
 
 process fastStructureVis {
 
-    publishDir "${params.outdir}/population_stats", enabled: true, mode: 'copy'
+    publishDir "${params.outdir}/fastStructure", enabled: true, mode: 'copy'
 
     input:
-    path (popSumStats)
-    path (fstSumStats)
+    path (meanQ)
 
     output:
     path ("*.png"), emit: images
-    path ("*.md"), emit: markdown
 
     script:
     """
-    populatons.r "${popSumStats}" "${fstSumStats}"
+    fastStructure.r 
     """
 
 }
