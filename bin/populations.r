@@ -79,4 +79,4 @@ for (stat in c('fis', 'obs_het', 'pi')) {
 # Fst HeatMap
 # ~~~~~~~~~~~~~~~~~~~
 
-fstSumStats <- read.table()
+#fstSumStats <- read.table()

@@ -13,7 +13,6 @@ log.info """\
          =============================
          meta: ${params.meta}
          vcf : ${params.vcf}
-         reads : ${params.reads}
          EnTAP: ${params.fullentap}
          """
          .stripIndent()

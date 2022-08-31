@@ -41,36 +41,36 @@ for (file in c(1:length(read_candidates))) {
   summary[nrow(summary), 2] <- nrow(read_candidates[[file]])
 }
 
-write.table(x=summary,file="Summary_Candidates.txt",sep="\t",quote=FALSE,col.names=TRUE,row.names=FALSE)
+write.table(x=summary %>% arrange(desc(candidates)),file="Summary_Candidates.txt",sep="\t",quote=FALSE,col.names=TRUE,row.names=FALSE)
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Compile Candidates into one Dataframe
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 binded_candidates <- dplyr::bind_rows(read_candidates)
 
 grouped_candidates <- binded_candidates %>% 
   group_by(id, .drop=FALSE) %>%
   dplyr::mutate(id = gsub(':',"_",id),
-         env_pvalue = paste0(env,"=",pvalue, collapse = ","),
-         n=n()) %>%
+        env_pvalue = paste0(env,"=",pvalue, collapse = ","),
+        n=n()) %>%
   arrange(desc(n)) %>%
   distinct(id, .keep_all=TRUE) %>%
-  select("chrom_pos"=id, n, annotation,
-         impact=annotation_impact,
-         Gene=EggNOG.Predicted.Gene,
-         description=EggNOG.Description,
-         GO_terms=EggNOG.GO.Biological,
-         env_pvalue, chrom)
+  select("chrom_pos"=id, 
+        n, annotation,
+        impact=annotation_impact,
+        gene=EggNOG.Predicted.Gene,
+        description=EggNOG.Description,
+        GO_terms=EggNOG.GO.Biological,
+        env_pvalue, chrom)
 
 write.table(x=grouped_candidates,file="FinalResults_Candidates.txt",sep="\t",quote=FALSE,col.names=TRUE,row.names=FALSE)
-
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # VIS Pie Genotypes & impact level bar chart
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-filtered_candidates <- grouped_candidates %>% filter_at(vars(Gene, description), any_vars(!is.na(.)))
+filtered_candidates <- grouped_candidates %>% filter_at(vars(gene, description), any_vars(!is.na(.)))
 
 # Match strings to color
 colors <- c("coral", "chocolate", "burlywood", "bisque","black")
@@ -116,8 +116,6 @@ grp_barchart <- function(df, x = n, y = env, fill, xlab, ylab, title="", sub="",
     labs(title=title, subtitle=sub, y=ylab, x=xlab, caption=caption, fill=legend_title) +  
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
     theme_bw()
-     
-     
   
   # Condition = apply color pallete 
   if(genotypes) {
@@ -148,16 +146,15 @@ grp_piechart <- function(df, y = n, fill = genotype) {
             plot.background=element_blank()))
 }
 
-
 # For every candidate SNP draw bar chart and pie chart of pop genotype proportions
 for (candidate in unique(geno_long %>% distinct(chrom_pos) %>% pull(chrom_pos))) {
   
   if (file.exists(paste("./",candidate,"/")) == FALSE) {
-  dir.create(paste0("./",candidate,"/",collapse = ""),showWarnings = FALSE, recursive=TRUE)} # create candidate dir. for storing plots, collapse hidden space in front
+  dir.create(paste0("./plots/",candidate,"/",collapse = ""),showWarnings = FALSE, recursive=TRUE)} # create candidate dir. for storing plots, collapse hidden space in front
   
   geno_long_candidate <- geno_long %>% filter(chrom_pos == candidate)
   
-  png(file=paste0(candidate,"/",candidate,"_geno_barchart.png",collapse = ""))
+  png(file=paste0("./plots/",candidate,"/",candidate,"_geno_barchart.png",collapse = ""))
   barchart <- grp_barchart(df=geno_long_candidate, 
                y=n, x=factor(pop, level = pop_order_list), fill=genotype, # variables 
                ylab="population", xlab="count", legend_title="genotype", # Titles
@@ -170,7 +167,7 @@ for (candidate in unique(geno_long %>% distinct(chrom_pos) %>% pull(chrom_pos)))
   pies <- grp_piechart(df=geno_long %>% filter(chrom_pos == candidate))
   
   for (pop in c(1:length(pies))){
-    png(file=paste0("./",candidate,"/",names(pies[pop]),"_geno_piechart.png"))
+    png(file=paste0("./plots/",candidate,"/",names(pies[pop]),"_geno_piechart.png"))
     print(pies[[pop]])
     dev.off()
     }

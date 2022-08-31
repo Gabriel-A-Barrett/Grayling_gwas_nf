@@ -13,8 +13,7 @@ analysis interpretation through presentation of raw code and order of processes.
 `nextflow run main.nf -entry NF_GWAS -with-singulariy gwas-nf.sif`
 
 ## ToDo
-* [] add STACKS populations within and between pop. stats + visualizations
-		- Issue Segmentation Fault Error, Can solve by calculating within population statistics individually within for loop. 
-* [] Add fastStructure and PCA Analysis and visualization
-* [] add snpeff to container for process invoking
-* [] add entap to container for process invoking
+* Add fastStructure and PCA Analysis and visualization
+	* For nuetral, outlier, combined analysis
+* add snpeff 
+* add entap 
