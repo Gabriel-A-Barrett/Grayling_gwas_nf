@@ -68,8 +68,10 @@ for (stat in c('fis', 'obs_het', 'pi')) {
     df <- phi_stats %>% select(stat, paste0(stat,"_var"),pop)
     
     plot <- withinPopGraph()
-    
-    png(paste(stat,"_PointPlot.png"))    
+  
+    filename <- paste(stat,"_PointPlot.png") %>% gsub("[[:space:]]","",.) # Group file removing any white spaces
+
+    png(filename)
     print(plot)
     dev.off()
   
