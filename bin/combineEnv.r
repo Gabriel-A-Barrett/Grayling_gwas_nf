@@ -26,7 +26,7 @@ library(tidyr)
 
 read_candidates <- lapply(name_candidates, read.delim) # reads all dataframes in list and store in list read_candidates
 
-pop <- read.table(meta,h=T,sep=",") %>% dplyr::select(ind = 1, pop = popmap_adjusted)
+pop <- read.table(meta,h=T,sep=",") %>% dplyr::select(ind = 1, pop = 2)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Write Summary DataFrame with number of candidates in each dataframe
@@ -76,7 +76,10 @@ filtered_candidates <- grouped_candidates %>% filter_at(vars(gene, description),
 colors <- c("coral", "chocolate", "burlywood", "bisque","black")
 names <- c("Ref_Homo","Hetero_1","Hetero_2","Alt_Homo", "Missing")
 names(colors) <- names
-pop_order_list <- c("IMup.a", "IMup", "IMlow.a","IMlow", "IM3.a", "LL3.a", "Itk3", "Itk4", "Itk4.5", "Kup.a", "Kup2", "Kup5", "Kup6", "Kup7", "KLAS5", "Kup8", "Lkup.a", "LKup0", "LKup1", "LKup3", "OksHW.a", "Oks0", "OksZev", "Oks2", "Oks2.5", "Oks3","OksSag.a", "LSagHV", "LSag2", "LSagTC")
+
+# VIS. Levels
+adjusted_pop_order_list <- c("IMup.a", "IMup", "IMlow.a","IMlow", "IM3.a", "LL3.a", "Itk3", "Itk4", "Itk4.5", "Kup.a", "Kup2", "Kup5", "Kup6", "Kup7", "KLAS5", "Kup8", "Lkup.a", "LKup0", "LKup1", "LKup3", "OksHW.a", "Oks0", "OksZev", "Oks2", "Oks2.5", "Oks3","OksSag.a", "LSagHV", "LSag2", "LSagTC")
+location_pop_order_list <- c("IMO", "IMR1", "IMR2", "BJANE", "LIMS", "IMR3", "IM3", "LL3", "Itk3", "Itk4", "Itk4.5", "GCL", "CGK", "Kup2", "KUS", "Toolik-S3", "LTER", "KupR2", "Toolik-TOAS", "Kup6", "KupR4", "Kup7", "KLAS5", "Kup", "Kup8", "LKup", "LKup0", "LKup1", "LKup3", "OksLCS", "UZ", "OKm1", "OksR1", "Oks0","OksLTER", "OksBH", "Oks2", "OksRN4", "Oks3", "OKS3", "OksSag", "CGO3", "LSag", "HV", "LSag2", "TC")
 
 # Dataset with candidate SNP genotypes as characters for visualization
 geno_long <- read.table(genotypes,h=T) %>% 
@@ -156,7 +159,7 @@ for (candidate in unique(geno_long %>% distinct(chrom_pos) %>% pull(chrom_pos)))
   
   png(file=paste0("./plots/",candidate,"/",candidate,"_geno_barchart.png",collapse = ""))
   barchart <- grp_barchart(df=geno_long_candidate, 
-               y=n, x=factor(pop, level = pop_order_list), fill=genotype, # variables 
+               y=n, x=factor(pop, level = location_pop_order_list), fill=genotype, # variables 
                ylab="population", xlab="count", legend_title="genotype", # Titles
                title = geno_long_candidate$Gene, sub = geno_long_candidate$description,
                genotypes=TRUE)

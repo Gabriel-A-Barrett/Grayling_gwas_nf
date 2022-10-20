@@ -103,7 +103,7 @@ SNPs_df %>%
             annotation_impact,HGVS.p,
             EggNOG.Predicted.Gene,EggNOG.Description,
             EggNOG.GO.Biological,chrom,env,pvalue) %>% 
-    filter(pvalue < .00001) %>% 
+    filter(pvalue < .000001) %>% 
     arrange(pvalue) %>%
     write.table(file=paste0(env,"_candidates.txt"),x=.,quote=FALSE,col.names=TRUE,row.names=TRUE,sep="\t")
 
@@ -130,11 +130,12 @@ axis_df <- don %>%
     dplyr::summarize(center=(max(BPcum) + min(BPcum)) / 2)
 
 png(paste0(env,"_manhattanplot.png"), width=1285, height=240)
+par(bg=NA) # remove background
 manhattan <- ggplot(don, aes(x=BPcum, y=-log10(pvalue))) +
     # Show all points
     geom_point(aes(color=as.factor(chrom)), alpha=0.85, size=2.3) +
     # Rotate between grey and lightgrey colors
-    scale_color_manual(values = rep(c("grey", "lightgrey"), 22 )) +
+    scale_color_manual(values = rep(c("dimgray", "gray47"), 22 )) +
     #geom_point(data=subset(don, is_highlight=="yes"), color="orange", size=2.7) + 
     
     # custom X axis
@@ -144,15 +145,19 @@ manhattan <- ggplot(don, aes(x=BPcum, y=-log10(pvalue))) +
   
     # Custom the theme:
     theme_bw() +
-    theme( legend.position="none",
-      panel.border = element_blank(),
-      panel.grid.major.x = element_blank(),
-      panel.grid.minor.x = NULL,
-      axis.text = element_text(size = 20.5),
-      axis.title = element_text(size = 20),
-      axis.title.y=element_text(angle=90,hjust=1),
-      axis.text.y=element_text(size=12)) + 
-      geom_hline(yintercept = -log10(.000001), linetype="dashed", size = .35, colour = "red")
+    theme(
+        panel.background = element_rect(fill='transparent'),
+        plot.background = element_rect(fill='transparent',color=NA),
+        legend.position="none",
+        panel.border = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = NULL,
+        axis.text = element_text(size = 25.5),
+        #axis.title = element_text(size = 20),
+        axis.title = element_blank(),
+        axis.title.y=element_text(angle=90,hjust=1),
+        axis.text.y=element_text(size=12)) + 
+    geom_hline(yintercept = -log10(.000001), linetype="dashed", size = .35, colour = "red")
 
 print(manhattan)
 
