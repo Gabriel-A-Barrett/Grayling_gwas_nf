@@ -10,22 +10,12 @@ process fastStructure {
     each model_complexity
 
     output:
-    path ("${file.getBaseName()}.meanQ"), emit: meanQ
+    path ("${file.replaceAll(/.vcf.gz/, '')}.meanQ"), emit: meanQ
 
     script:
-
-    if ("${file}".endsWith(".vcf.gz") | "${file}".endsWith(".vcf")) {
-        """
-        plink --vcf ${file} 
-        fastStructure.py -K "${model_complexity}" --input "${file}" --output
-        """
-    }
-    else if ("${file}".endsWith(".ped")) {
-        """
-        fastStructure.py -K "${model_complexity}" --input "${file}" --output "${file.getBaseName()}"
-        """
-    }
-    else {println "Unsupported input to fastStructure. Handles gzipped vcf, vcf, and ped files"}
+    """
+    fastStructure.py -K "${model_complexity}" --input "${file}" --output "${file.replaceAll(/.vcf.gz/, '')}"
+    """
 }
 
 process fastStructureVis {
@@ -40,7 +30,7 @@ process fastStructureVis {
 
     script:
     """
-    fastStructure.r 
+    fastStructure.r "${meanQ}"
     """
 
 }

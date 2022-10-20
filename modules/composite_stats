@@ -1,5 +1,5 @@
 process compositeStats {
-    publishDir "${params.outdir}/${task.process.replaceAll(':', '_')}/${env}", enabled: true
+    publishDir "${params.outdir}/${task.process.replaceAll(':', '_')}/${env}", enabled: true, mode: 'copy'
     label 'little_demon'
     cache 'lenient'
     //errorStrategy 'ignore'
@@ -22,7 +22,7 @@ process compositeStats {
 }
 
 process combineEnv {
-    publishDir "${params.outdir}/${task.process.replaceAll(':', '_')}", enabled: true
+    publishDir "${params.outdir}/${task.process.replaceAll(':', '_')}", enabled: true, mode: 'copy'
     label 'little_demon'
     cache 'lenient'
 
@@ -35,7 +35,7 @@ process combineEnv {
     stdout emit: results
     path ("Summary_Candidates.txt"), emit: summaryCandidates
     path ("FinalResults_Candidates.txt"), emit: finalresultsCandidates
-    path ("*/*.png"), emit: pictures
+    path ("plots/*/*.png"), emit: pictures
 
     script:
     """

@@ -1,4 +1,6 @@
-// outputs 
+// converts meta into vcf2baypass.pl group format
+    // writes seperate env. group files and removes 
+    // removes records with NA's and joins it back to .vcf.indv list
 process meta2grps {
     tag "${meta} ${vcfIndvList}"
     label 'little_demon'
@@ -6,13 +8,14 @@ process meta2grps {
     input:
     path (meta) 
     path (vcfIndvList)
-    
+    val (first_env_column)
+
     output:
     path ("*.grp"), emit: grp2bay
     //stdout emit: results
 
     script:
     """
-    write_grps.r ${meta} ${vcfIndvList}
+    write_grps.r ${meta} ${vcfIndvList} ${first_env_column}
     """
 }

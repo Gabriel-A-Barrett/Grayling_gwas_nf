@@ -1,0 +1,27 @@
+process VCF2PED {
+    tag "$vcf"
+    label 'process_low'
+
+
+    input:
+    path (vcf)
+    each path (grp)
+
+    output:
+    path ("*.ped"), emit: ped2env
+
+    script:
+    """
+    # Prefix Tracking
+    env="\$(basename ${grp} .grp)"
+    
+    # plink subset vcf format
+    awk -F"\t" '{print \$1" "\$1" "\$2" "\$1}' ${grp} > "\${env}_indv.list"
+    
+    plink1.9 --vcf ${vcf} --keep "\${env}_indv.list" --recode vcf-iid --allow-extra-chr --out "\${env}"
+
+    # .ped format
+    plink1.9 --vcf "\${env}.vcf" --recode  --double-id --allow-extra-chr --out "\${env}"
+    """
+
+}

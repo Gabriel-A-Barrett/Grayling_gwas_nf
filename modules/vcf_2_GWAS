@@ -1,3 +1,4 @@
+// write genotype and correct indv. list
 process vcf2GWAS {
     cache 'lenient'
     tag "working on env: ${grp.getBaseName()}"
@@ -8,21 +9,32 @@ process vcf2GWAS {
     
     output:
     path ("*.vcf"), emit: vcf2GWAS
-    path ("*.ped"), emit: ped2env
+    path ("*.ped"), emit: ped2GWAS
     path ("*.frq"), emit: frq2bay
     tuple path (grp), path ("*.pop_order"), emit: grps2env
     path ("*.loci"), emit: baypass_loci
-    
-    //def output_vcf = "${vcf.getBaseName().replaceAll(/.bam/,'')}"
 
     script:
     """
+    # Prefix Tracking
     env="\$(basename ${grp} .grp)"
+    
+    # plink subset vcf format
     awk -F"\t" '{print \$1" "\$1" "\$2" "\$1}' ${grp} > "\${env}_indv.list"
+    
+    # output vcf w/ indv. in env. file for vcf2baypass
     plink1.9 --vcf ${vcf} --keep "\${env}_indv.list" --recode vcf-iid --allow-extra-chr --out "\${env}"
+    
+    # opted into plink subsampling 
     #bcftools view -I --force-samples -S "\${env}_indv.list" ${vcf} > "\${env}.vcf"
+    
+    # Update the indv. record... accounting for indv. pruning due to 'NA's' in env. 
     bcftools query -l "\${env}.vcf" > "\${env}.indv"
+    
+    # .ped format
     plink1.9 --vcf "\${env}.vcf" --recode  --double-id --allow-extra-chr --out "\${env}"
+    
+    # BayPass Format
     cat "\${env}.vcf" | perl ${baseDir}/bin/vcf2baypass.pl ${grp} "\${env}.frq"
     """
 }
