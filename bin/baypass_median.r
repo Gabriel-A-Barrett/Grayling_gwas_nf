@@ -17,7 +17,6 @@ message("Input meta (Arg 2:) ", loci)
 message("Input meta (Arg 3:) ", maxiter)
 
 library(dplyr)
-#library(matrixStats)
 
 loci <- read.table(loci,h=F,col.names=c("chrom","pos"))
 df <- data.frame(n = 1:nrow(loci))

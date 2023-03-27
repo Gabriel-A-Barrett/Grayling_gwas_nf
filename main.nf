@@ -24,6 +24,11 @@ workflow NF_GWAS {
     GWAS ()
 }
 
+workflow {    
+    GWAS ()
+}
+
+
 workflow.onComplete {
 	log.info ( workflow.success ? "\nDone! Open the following report in your browser --> $params.outdir\n" : "Oops .. something went wrong" )
 }

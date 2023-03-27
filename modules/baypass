@@ -1,6 +1,8 @@
 process baypass {
-    label 'gwas'
-    cache 'lenient'
+    label 'process_low'
+
+    container 'gbarrett9086/baypass:2.3'
+
     input:
     tuple val (env), path (files) 
     each rep
@@ -15,7 +17,7 @@ process baypass {
     EPOP="\$(head -n 1 "${env_file}" | awk '{print NF}')"
     POP="\$(head -n 1 "${geno}" | awk '{print NF}')"
     if ["\$EPOP" != "\$POP"]; then 
-        echo "different number of populations in environment and genetic dataframes"
+        echo "different number of populations in environment and genetic dataframes"      
     else
         g_baypass -npop \${EPOP} -gfile "${geno}" -efile "${env_file}" \
 	    -nval 1000 -thin 30 -burnin 5000 -npilot 30 -pilotlength 1000 \

@@ -6,9 +6,3 @@ def getInputforGWAS(fib, lit) { // write [env, [geno_file, env_file]]
             return tuple (key, env)}
         .groupTuple(size:2)
 }
-
-
-
-
-
-

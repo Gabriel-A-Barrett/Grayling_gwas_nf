@@ -1,26 +1,27 @@
 process fastStructure {
     tag "${file}"
     publishDir "${params.outdir}/fastStructure", enabled: true, mode: 'copy'
-    module "fastStructure/1.0"
-    memory = 5.GB
-    //clusterOptions = "--qos=general --general=general"
+
+    container = 'quay.io/biocontainers/faststructure:1.0--py27h6b1b274_5'
 
     input:
     path (file)
     each model_complexity
 
     output:
-    path ("${file.replaceAll(/.vcf.gz/, '')}.meanQ"), emit: meanQ
+    path ("${file.getSimpleName()}.meanQ"), emit: meanQ
 
     script:
     """
-    fastStructure.py -K "${model_complexity}" --input "${file}" --output "${file.replaceAll(/.vcf.gz/, '')}"
+    python /usr/local/bin/structure.py -K "${model_complexity}" --input "${file}" --output "${file.getSimpleName()}" --seed 100
     """
 }
 
 process fastStructureVis {
 
     publishDir "${params.outdir}/fastStructure", enabled: true, mode: 'copy'
+
+    container ''
 
     input:
     path (meanQ)

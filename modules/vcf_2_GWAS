@@ -1,11 +1,11 @@
 // write genotype and correct indv. list
 process vcf2GWAS {
     cache 'lenient'
-    tag "working on env: ${grp.getBaseName()}"
+    //tag "working on env: ${grp.getBaseName()}"
     
     input:
     path (vcf)
-    each path (grp) 
+    each path(grp) 
     
     output:
     path ("*.vcf"), emit: vcf2GWAS

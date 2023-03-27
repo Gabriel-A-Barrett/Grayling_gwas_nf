@@ -1,6 +1,7 @@
 // converts meta into vcf2baypass.pl group format
     // writes seperate env. group files and removes 
     // removes records with NA's and joins it back to .vcf.indv list
+
 process meta2grps {
     tag "${meta} ${vcfIndvList}"
     label 'little_demon'

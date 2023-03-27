@@ -1,7 +1,6 @@
 process lea {
     label 'gwas'
     cache 'lenient'
-    //cpus "${task.cpus}"
     maxErrors '-1'
     errorStrategy { task.exitStatus == 143 ? 'retry' : 'terminate' }
 
