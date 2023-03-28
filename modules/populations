@@ -1,6 +1,8 @@
 process populations {
     publishDir "${params.outdir}/population_stats", enabled: true, mode: 'copy'
 
+    container 'https://depot.galaxyproject.org/singularity/stacks%3A2.61--hd03093a_1'
+
     input:
     path (vcf)
     path (meta)
@@ -25,7 +27,7 @@ process populations {
 process populationsVis {
 
     publishDir "${params.outdir}/population_stats", enabled: true, mode: 'copy'
-    
+
     input:
     path (popSumStats)
     path (fstSumStats)
