@@ -2,8 +2,6 @@ process fastStructure {
     tag "${file}"
     publishDir "${params.outdir}/fastStructure", enabled: true, mode: 'copy'
 
-    container = 'quay.io/biocontainers/faststructure:1.0--py27h6b1b274_5'
-
     input:
     path (file)
     each model_complexity
@@ -20,8 +18,6 @@ process fastStructure {
 process fastStructureVis {
 
     publishDir "${params.outdir}/fastStructure", enabled: true, mode: 'copy'
-
-    container ''
 
     input:
     path (meanQ)

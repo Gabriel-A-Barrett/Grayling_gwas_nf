@@ -3,8 +3,6 @@ process compositeStats {
     label 'little_demon'
     cache 'lenient'
 
-    container 'gbarrett9086/gwas-nf:latest'
-
     input:
     tuple val (env), path (baypass), path (lea)
     path (snpeff)
@@ -27,8 +25,6 @@ process combineEnv {
     publishDir "${params.outdir}/${task.process.replaceAll(':', '_')}", enabled: true, mode: 'copy'
     label 'little_demon'
     cache 'lenient'
-
-    container 'gbarrett9086/gwas-nf:latest'
 
     input:
     path (compositeStats)

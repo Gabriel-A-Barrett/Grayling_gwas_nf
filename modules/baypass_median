@@ -2,8 +2,6 @@ process baypass_median {
     label 'little_demon'
     cache 'lenient'
 
-    container 'rocker/tidyverse:4.2.2'
-
     input:
     tuple val (env), path (files) // [env, [all iterations for betai and xtx]]
     path (loci)

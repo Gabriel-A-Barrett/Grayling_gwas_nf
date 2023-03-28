@@ -1,8 +1,6 @@
 process combineEnv {
     publishDir 
     cache 'lenient'
-    
-    container 'gbarrett9086/gwas-nf:latest'
 
     input:
     path (outliers)

@@ -1,8 +1,6 @@
 process populations {
     publishDir "${params.outdir}/population_stats", enabled: true, mode: 'copy'
 
-    container 'gbarrett9086/gwas-nf'
-
     input:
     path (vcf)
     path (meta)
@@ -27,8 +25,7 @@ process populations {
 process populationsVis {
 
     publishDir "${params.outdir}/population_stats", enabled: true, mode: 'copy'
-    container 'gbarrett9086/gwas-nf'
-
+    
     input:
     path (popSumStats)
     path (fstSumStats)
