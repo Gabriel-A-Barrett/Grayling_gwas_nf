@@ -1,8 +1,6 @@
 process baypass {
     label 'process_low'
-
-    container 'gbarrett9086/baypass:2.3'
-
+    
     input:
     tuple val (env), path (files) 
     each rep

@@ -1,4 +1,4 @@
-FROM ubuntu:impish
+FROM ubuntu:22.04
 
 ARG DEBIAN_FRONTEND=noninteractive
 MAINTAINER Gabriel Barrett <eaglesnatcher123@gmail.com>
@@ -14,7 +14,9 @@ RUN apt-get update && apt-get install --yes --no-install-recommends \
     wget \
     build-essential \
     perl \
-    python \
+    python2-dev \
+    python-numpy \
+    Cython \
     bcftools \
     gfortran \
     plink1.9 \
