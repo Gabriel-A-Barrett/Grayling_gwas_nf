@@ -36,47 +36,51 @@ library(ggplot2)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 header_key <- read.table(header_key,sep="",header=FALSE,col.names=c("chrom","chrom_id")) %>% 
-    mutate(chrom=gsub("[^0-9]+","",chrom))
+  mutate(chrom=gsub("[^0-9]+","",chrom))
 
 lea <- read.table(lea,h=T,sep="")
 
 baypass <- read.table(baypass,sep="\t",h=T) #%>% select(!(ends_with("Pearson")))
 
 entap <- read.delim(entap, h=T, fill=T,sep="\t", na.strings=c("","NA"))  %>% 
-    select(feature_id=Query.Sequence,EggNOG.Predicted.Gene,EggNOG.Description,EggNOG.GO.Biological)
+  select(feature_id=Query.Sequence,EggNOG.Predicted.Gene,EggNOG.Description,EggNOG.GO.Biological)
 
 vcfR_obj <- read.vcfR(vcf)
 vcfR_df <- vcfR2tidy(vcfR_obj)
 vcf_df_fix <- vcfR_df$fix %>% 
   select(chrom_id=CHROM,pos=POS,ANN) %>% 
   separate(col = ANN,into = c("allele","annotation","annotation_impact","gene_name",
-                                   "gene_id","feature_type","feature_id","transcript_biotype",
-                                   "rank","HGVS.c","HGVS.p","cDNA.pos/cDNA.length","cDNS.pos/cDNS.length",
-                                   "AA.pos/AA.length","distance","err"), sep = "\\|",convert=T,remove=F,fill="right") %>%
+                              "gene_id","feature_type","feature_id","transcript_biotype",
+                              "rank","HGVS.c","HGVS.p","cDNA.pos/cDNA.length","cDNS.pos/cDNS.length",
+                              "AA.pos/AA.length","distance","err"), sep = "\\|",convert=T,remove=F,fill="right") %>%
   select(!(ANN)) %>% 
   cbind(.,baypass,lea) %>% # breaks when argument contains different number of rows, could switch to left_join based on Chromosome_Position
   # left join can add rows if there are multiple matches to the right table
   #left_join(.,entap, by = c("feature_id"="Query.Sequence")) %>%
   left_join(.,header_key,by="chrom_id") %>%
-  mutate_all(na_if,"") #%>% select(-feature_id) #%>%  cbind(.,BayPass,LEA)
-
+  #mutate_all(na_if,"") #%>% select(-feature_id) #%>%  cbind(.,BayPass,LEA)
+  
+  mutate(
+    across(where(is.character), ~ na_if(.x, "0")),
+    across(where(is.numeric), ~ na_if(.x, 0))
+  )
 # Add row number within each group so that only the first record will be added
 SNPs_df <- left_join(vcf_df_fix %>% group_by(feature_id) %>% dplyr::mutate(id1 = row_number()),
-                        entap %>% group_by(feature_id) %>% dplyr::mutate(id2 = row_number()),
-                        by = c("feature_id","id1"="id2")) %>% 
-                        
-                        # necessary for downstream processes?? forget where..... :(
-                        ungroup()
+                     entap %>% group_by(feature_id) %>% dplyr::mutate(id2 = row_number()),
+                     by = c("feature_id","id1"="id2")) %>% 
+  
+  # necessary for downstream processes?? forget where..... :(
+  ungroup()
 
 # write.table(file=paste0(env,"_SNPs_df.txt"),x=SNPs_df,row.names=FALSE,col.names=TRUE,quote=FALSE)
 
 png(paste0(env,"_univariateHist.png"))
 par(mfrow=c(2,3))
 for (stat in c("XtX","GD","BF","EA", "Pearson")) {
-
-    column <- paste0(env,"_",stat)
-    
-    hist(SNPs_df[[column]], main = paste0(env,"_",stat))
+  
+  column <- paste0(env,"_",stat)
+  
+  hist(SNPs_df[[column]], main = paste0(env,"_",stat))
 }
 dev.off()
 
@@ -95,17 +99,17 @@ dev.off()
 
 # Outlier List
 SNPs_df %>% 
-    #group_by(gene_name = SNPs_df$gene_name) %>%
-    #dplyr::summarise(gene_count=n()) %>% 
-    #ungroup() %>%
-    mutate(env = paste0(env), id = paste0(chrom_id,"_",pos)) %>%
-    select(id, annotation, gene_name,
-            annotation_impact,HGVS.p,
-            EggNOG.Predicted.Gene,EggNOG.Description,
-            EggNOG.GO.Biological,chrom,env,pvalue) %>% 
-    filter(pvalue < .000001) %>% 
-    arrange(pvalue) %>%
-    write.table(file=paste0(env,"_candidates.txt"),x=.,quote=FALSE,col.names=TRUE,row.names=TRUE,sep="\t")
+  #group_by(gene_name = SNPs_df$gene_name) %>%
+  #dplyr::summarise(gene_count=n()) %>% 
+  #ungroup() %>%
+  mutate(env = paste0(env), id = paste0(chrom_id,"_",pos)) %>%
+  select(id, annotation, gene_name,
+         annotation_impact,HGVS.p,
+         EggNOG.Predicted.Gene,EggNOG.Description,
+         EggNOG.GO.Biological,chrom,env,pvalue) %>% 
+  filter(pvalue < .000001) %>% 
+  arrange(pvalue) %>%
+  write.table(file=paste0(env,"_candidates.txt"),x=.,quote=FALSE,col.names=TRUE,row.names=TRUE,sep="\t")
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Manhattan Plot
@@ -114,50 +118,50 @@ SNPs_df %>%
 #SNPs_df <- SNPs_df %>% left_join(.,chrom_key,by="chrom_id")
 
 don <- SNPs_df %>% 
-    select(chrom,pos,pvalue) %>% 
-    mutate(chrom = factor(chrom, levels = c(1:25))) %>% 
-    filter(!(chrom == "NA")) %>%
-    group_by(chrom) %>%
-    dplyr::summarise(chr_len=max(pos)) %>%
-    mutate(tot=cumsum(chr_len)-chr_len) %>%
-    select(-chr_len) %>%
-    dplyr::left_join(SNPs_df, ., by=c("chrom"="chrom")) %>%
-    mutate(BPcum=pos+tot) %>%
-    arrange(chrom,pos)
+  select(chrom,pos,pvalue) %>% 
+  mutate(chrom = factor(chrom, levels = c(1:25))) %>% 
+  filter(!(chrom == "NA")) %>%
+  group_by(chrom) %>%
+  dplyr::summarise(chr_len=max(pos)) %>%
+  mutate(tot=cumsum(chr_len)-chr_len) %>%
+  select(-chr_len) %>%
+  dplyr::left_join(SNPs_df, ., by=c("chrom"="chrom")) %>%
+  mutate(BPcum=pos+tot) %>%
+  arrange(chrom,pos)
 
 axis_df <- don %>% 
-    group_by(chrom) %>%    
-    dplyr::summarize(center=(max(BPcum) + min(BPcum)) / 2)
+  group_by(chrom) %>%    
+  dplyr::summarize(center=(max(BPcum) + min(BPcum)) / 2)
 
 png(paste0(env,"_manhattanplot.png"), width=1285, height=240)
 par(bg=NA) # remove background
 manhattan <- ggplot(don, aes(x=BPcum, y=-log10(pvalue))) +
-    # Show all points
-    geom_point(aes(color=as.factor(chrom)), alpha=0.85, size=2.3) +
-    # Rotate between grey and lightgrey colors
-    scale_color_manual(values = rep(c("dimgray", "gray47"), 22 )) +
-    #geom_point(data=subset(don, is_highlight=="yes"), color="orange", size=2.7) + 
-    
-    # custom X axis
-    scale_x_continuous(label = axis_df$chrom, breaks= axis_df$center, expand=c(0,0)) + xlab("") + ylab("") +
-    # Custom Y axis
-    scale_y_continuous(expand = c(0, 0), limits = c(min(-log10(don$pvalue)) -.25, max(-log10(don$pvalue)) + .5)) + ylab("") + ylab(paste0(env)) + #labs(subtitle=paste0("n = ",NumberOfIndividuals)) +  # remove space between plot area and x axis with expand ORIGINAL: max(don$harmony) + 1
+  # Show all points
+  geom_point(aes(color=as.factor(chrom)), alpha=0.85, size=2.3) +
+  # Rotate between grey and lightgrey colors
+  scale_color_manual(values = rep(c("dimgray", "gray47"), 22 )) +
+  #geom_point(data=subset(don, is_highlight=="yes"), color="orange", size=2.7) + 
   
-    # Custom the theme:
-    theme_bw() +
-    theme(
-        panel.background = element_rect(fill='transparent'),
-        plot.background = element_rect(fill='transparent',color=NA),
-        legend.position="none",
-        panel.border = element_blank(),
-        panel.grid.major.x = element_blank(),
-        panel.grid.minor.x = NULL,
-        axis.text = element_text(size = 25.5),
-        #axis.title = element_text(size = 20),
-        axis.title = element_blank(),
-        axis.title.y=element_text(angle=90,hjust=1),
-        axis.text.y=element_text(size=12)) + 
-    geom_hline(yintercept = -log10(.000001), linetype="dashed", size = .35, colour = "red")
+  # custom X axis
+  scale_x_continuous(label = axis_df$chrom, breaks= axis_df$center, expand=c(0,0)) + xlab("") + ylab("") +
+  # Custom Y axis
+  scale_y_continuous(expand = c(0, 0), limits = c(min(-log10(don$pvalue)) -.25, max(-log10(don$pvalue)) + .5)) + ylab("") + ylab(paste0(env)) + #labs(subtitle=paste0("n = ",NumberOfIndividuals)) +  # remove space between plot area and x axis with expand ORIGINAL: max(don$harmony) + 1
+  
+  # Custom the theme:
+  theme_bw() +
+  theme(
+    panel.background = element_rect(fill='transparent'),
+    plot.background = element_rect(fill='transparent',color=NA),
+    legend.position="none",
+    panel.border = element_blank(),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = NULL,
+    axis.text = element_text(size = 25.5),
+    #axis.title = element_text(size = 20),
+    axis.title = element_blank(),
+    axis.title.y=element_text(angle=90,hjust=1),
+    axis.text.y=element_text(size=12)) + 
+  geom_hline(yintercept = -log10(.000001), linetype="dashed", size = .35, colour = "red")
 
 print(manhattan)
 

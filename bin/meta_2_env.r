@@ -20,7 +20,7 @@ message("Input meta (Arg 2:) ", grp_character)
 message("Input meta (Arg 3:) ", grp_order)
 
 library(dplyr)
-library(stringr)
+#library(stringr)
 library(tidyr)
 
 # Baypass groupings for correctly structuring baypass env. input based on vcf2baypass.pl
