@@ -159,7 +159,7 @@ for (candidate in unique(geno_long %>% distinct(chrom_pos) %>% pull(chrom_pos)))
   
   png(file=paste0("./plots/",candidate,"/",candidate,"_geno_barchart.png",collapse = ""))
   barchart <- grp_barchart(df=geno_long_candidate, 
-               y=n, x=factor(pop, level = location_pop_order_list), fill=genotype, # variables 
+               y=n, x=factor(pop, level = adjusted_pop_order_list), fill=genotype, # variables 
                ylab="population", xlab="count", legend_title="genotype", # Titles
                title = geno_long_candidate$Gene, sub = geno_long_candidate$description,
                genotypes=TRUE)
