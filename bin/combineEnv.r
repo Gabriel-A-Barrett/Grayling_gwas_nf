@@ -80,6 +80,7 @@ names(colors) <- names
 # VIS. Levels
 adjusted_pop_order_list <- c("IMup.a", "IMup", "IMlow.a","IMlow", "IM3.a", "LL3.a", "Itk3", "Itk4", "Itk4.5", "Kup.a", "Kup2", "Kup5", "Kup6", "Kup7", "KLAS5", "Kup8", "Lkup.a", "LKup0", "LKup1", "LKup3", "OksHW.a", "Oks0", "OksZev", "Oks2", "Oks2.5", "Oks3","OksSag.a", "LSagHV", "LSag2", "LSagTC")
 location_pop_order_list <- c("IMO", "IMR1", "IMR2", "BJANE", "LIMS", "IMR3", "IM3", "LL3", "Itk3", "Itk4", "Itk4.5", "GCL", "CGK", "Kup2", "KUS", "Toolik-S3", "LTER", "KupR2", "Toolik-TOAS", "Kup6", "KupR4", "Kup7", "KLAS5", "Kup", "Kup8", "LKup", "LKup0", "LKup1", "LKup3", "OksLCS", "UZ", "OKm1", "OksR1", "Oks0","OksLTER", "OksBH", "Oks2", "OksRN4", "Oks3", "OKS3", "OksSag", "CGO3", "LSag", "HV", "LSag2", "TC")
+factors <- c("C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "K1", "K2", "K3", "K4", "K5", "K6", "K7", "K8", "K9", "K10", "K11", "K12", "S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9", "S10")
 
 # Dataset with candidate SNP genotypes as characters for visualization
 geno_long <- read.table(genotypes,h=T) %>% 
@@ -108,8 +109,9 @@ geno_long <- read.table(genotypes,h=T) %>%
   mutate(level = factor(genotype, levels = rev(as.character(names)))) %>%
   arrange(pop,level) %>% 
   group_by(chrom_pos, pop, genotype) %>% 
-  dplyr::mutate(n = dplyr::n()) %>%
-  distinct(chrom_pos,.keep_all = TRUE)
+  dplyr::mutate(freq = dplyr::n() / sum(dplyr::n())) %>%
+  distinct(chrom_pos,.keep_all = TRUE) %>%
+  drop_na()
 
 
 # Bar Chart
@@ -159,7 +161,7 @@ for (candidate in unique(geno_long %>% distinct(chrom_pos) %>% pull(chrom_pos)))
   
   png(file=paste0("./plots/",candidate,"/",candidate,"_geno_barchart.png",collapse = ""))
   barchart <- grp_barchart(df=geno_long_candidate, 
-               y=n, x=factor(pop, level = adjusted_pop_order_list), fill=genotype, # variables 
+               y=n, x=factor(pop, level =  factors), fill=genotype, # variables 
                ylab="population", xlab="count", legend_title="genotype", # Titles
                title = geno_long_candidate$Gene, sub = geno_long_candidate$description,
                genotypes=TRUE)
