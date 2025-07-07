@@ -106,9 +106,13 @@ geno_long <- read.table(genotypes, h=T) %>%
                                     .default = "Missing"))) %>%
   filter(genotype != "Missing") %>%  # Remove missing genotypes
   group_by(chrom_pos, pop, genotype) %>% 
-  summarise(count = n(), .groups = "drop") %>%  # Summarize by count
-  drop_na()
-
+  summarise(
+    count = n(),
+    gene = first(replace_na(as.character(gene), "Unknown")),
+    description = first(replace_na(as.character(description), "Unknown")),
+    .groups = "drop"
+  ) %>%
+  filter(!is.na(pop))
 
 # Bar Chart
 grp_barchart <- function(df, x = n, y = env, fill, xlab, ylab, title="", sub="", caption="", legend_title="",genotypes = FALSE) {
@@ -120,7 +124,8 @@ grp_barchart <- function(df, x = n, y = env, fill, xlab, ylab, title="", sub="",
   
   # Condition = apply color pallete 
   if(genotypes) {
-    barchart + scale_fill_manual(name = names, values = colors)} 
+    # this can return error in vector as.character
+    barchart + scale_fill_manual(name = legend_title, values = colors)} 
   else {
     barchart}
 }
@@ -147,19 +152,33 @@ grp_piechart <- function(df, y = n, fill = genotype) {
             plot.background=element_blank()))
 }
 
+extract_single_value <- function(df, column, fallback = "Unknown") {
+  val <- df %>%
+    dplyr::distinct({{ column }}) %>%
+    dplyr::filter(!is.na({{ column }})) %>%
+    dplyr::pull({{ column }}) %>%
+    purrr::pluck(1)
+  
+  if (is.null(val) || length(val) == 0) return(fallback)
+  as.character(val)
+}
+
+
 # For every candidate SNP draw bar chart and pie chart of pop genotype proportions
 for (candidate in unique(geno_long %>% distinct(chrom_pos) %>% pull(chrom_pos))) {
   
   if (file.exists(paste("./",candidate,"/")) == FALSE) {
   dir.create(paste0("./plots/",candidate,"/",collapse = ""),showWarnings = FALSE, recursive=TRUE)} # create candidate dir. for storing plots, collapse hidden space in front
-  
+
   geno_long_candidate <- geno_long %>% filter(chrom_pos == candidate)
+  gene_title <- extract_single_value(geno_long_candidate, gene)
+  desc_subtitle <- extract_single_value(geno_long_candidate, description)
   
   png(file=paste0("./plots/",candidate,"/",candidate,"_geno_barchart.png",collapse = ""))
   barchart <- grp_barchart(df=geno_long_candidate, 
                y=count, x=factor(pop, level =  factors), fill=genotype, # variables 
                ylab="population", xlab="count", legend_title="genotype", # Titles
-               title = geno_long_candidate$Gene, sub = geno_long_candidate$description,
+               title = gene_title, sub = desc_subtitle,
                genotypes=TRUE)
   
   print(barchart)
