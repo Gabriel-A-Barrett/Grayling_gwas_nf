@@ -59,9 +59,9 @@ grouped_candidates <- binded_candidates %>%
   select("chrom_pos"=id, 
         n, annotation,
         impact=annotation_impact,
-        gene=EggNOG.Predicted.Gene,
-        description=EggNOG.Description,
-        GO_terms=EggNOG.GO.Biological,
+        gene=Database_EggNOG_COG_Description,
+        description=Database_EggNOG_Description,
+        GO_terms=Database_EggNOG_GO_Molecular,
         env_pvalue, chrom)
 
 write.table(x=grouped_candidates,file="FinalResults_Candidates.txt",sep="\t",quote=FALSE,col.names=TRUE,row.names=FALSE)
@@ -72,24 +72,22 @@ write.table(x=grouped_candidates,file="FinalResults_Candidates.txt",sep="\t",quo
 
 filtered_candidates <- grouped_candidates %>% filter_at(vars(gene, description), any_vars(!is.na(.)))
 
-# Match strings to color
-colors <- c("coral", "chocolate", "burlywood", "bisque","black")
-names <- c("Ref_Homo","Hetero_1","Hetero_2","Alt_Homo", "Missing")
-names(colors) <- names
+genotype_levels <- c("Ref_Homo", "Hetero_1", "Hetero_2", "Alt_Homo", "Missing")
+colors <- c("coral", "chocolate", "burlywood", "bisque", "black")
+names(colors) <- genotype_levels
 
 # VIS. Levels
 adjusted_pop_order_list <- c("IMup.a", "IMup", "IMlow.a","IMlow", "IM3.a", "LL3.a", "Itk3", "Itk4", "Itk4.5", "Kup.a", "Kup2", "Kup5", "Kup6", "Kup7", "KLAS5", "Kup8", "Lkup.a", "LKup0", "LKup1", "LKup3", "OksHW.a", "Oks0", "OksZev", "Oks2", "Oks2.5", "Oks3","OksSag.a", "LSagHV", "LSag2", "LSagTC")
 location_pop_order_list <- c("IMO", "IMR1", "IMR2", "BJANE", "LIMS", "IMR3", "IM3", "LL3", "Itk3", "Itk4", "Itk4.5", "GCL", "CGK", "Kup2", "KUS", "Toolik-S3", "LTER", "KupR2", "Toolik-TOAS", "Kup6", "KupR4", "Kup7", "KLAS5", "Kup", "Kup8", "LKup", "LKup0", "LKup1", "LKup3", "OksLCS", "UZ", "OKm1", "OksR1", "Oks0","OksLTER", "OksBH", "Oks2", "OksRN4", "Oks3", "OKS3", "OksSag", "CGO3", "LSag", "HV", "LSag2", "TC")
 factors <- c("C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "K1", "K2", "K3", "K4", "K5", "K6", "K7", "K8", "K9", "K10", "K11", "K12", "S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8", "S9", "S10")
 
-# Dataset with candidate SNP genotypes as characters for visualization
-geno_long <- read.table(genotypes,h=T) %>% 
-  mutate(chrom_pos = paste(CHROM,"_",POS, sep="")) %>% 
-  right_join(.,grouped_candidates, by = "chrom_pos") %>% 
-  #filter(id %in% filtered_candidates$chrom_pos) %>% 
+geno_long <- read.table(genotypes, h=T) %>% 
+  mutate(chrom_pos = paste(CHROM, "_", POS, sep="")) %>% 
+  right_join(., grouped_candidates, by = "chrom_pos") %>% 
   pivot_longer(cols = starts_with("Golden"), names_to = "ind", values_to = "geno") %>%
-  left_join(.,pop,by="ind") %>%
-  mutate(genotype = as.character(recode(geno, './.' = 'Missing', 
+  left_join(., pop, by="ind") %>%
+  mutate(genotype = as.character(recode(geno, 
+                                    './.' = 'Missing', 
                                     '0/0' = 'Ref_Homo', 
                                     '1/0' = 'Hetero_1', 
                                     '0/1' = 'Hetero_2', 
@@ -106,11 +104,9 @@ geno_long <- read.table(genotypes,h=T) %>%
                                     '2/2' = 'Alt_Homo',
                                     '2|2' = 'Alt_Homo',
                                     .default = "Missing"))) %>%
-  mutate(level = factor(genotype, levels = rev(as.character(names)))) %>%
-  arrange(pop,level) %>% 
+  filter(genotype != "Missing") %>%  # Remove missing genotypes
   group_by(chrom_pos, pop, genotype) %>% 
-  dplyr::mutate(freq = dplyr::n() / sum(dplyr::n())) %>%
-  distinct(chrom_pos,.keep_all = TRUE) %>%
+  summarise(count = n(), .groups = "drop") %>%  # Summarize by count
   drop_na()
 
 
@@ -161,7 +157,7 @@ for (candidate in unique(geno_long %>% distinct(chrom_pos) %>% pull(chrom_pos)))
   
   png(file=paste0("./plots/",candidate,"/",candidate,"_geno_barchart.png",collapse = ""))
   barchart <- grp_barchart(df=geno_long_candidate, 
-               y=n, x=factor(pop, level =  factors), fill=genotype, # variables 
+               y=count, x=factor(pop, level =  factors), fill=genotype, # variables 
                ylab="population", xlab="count", legend_title="genotype", # Titles
                title = geno_long_candidate$Gene, sub = geno_long_candidate$description,
                genotypes=TRUE)
@@ -169,20 +165,20 @@ for (candidate in unique(geno_long %>% distinct(chrom_pos) %>% pull(chrom_pos)))
   print(barchart)
   dev.off()
   
-  pies <- grp_piechart(df=geno_long %>% filter(chrom_pos == candidate))
+  #pies <- grp_piechart(df=geno_long %>% filter(chrom_pos == candidate))
   
-  for (pop in c(1:length(pies))){
-    png(file=paste0("./plots/",candidate,"/",names(pies[pop]),"_geno_piechart.png"))
-    print(pies[[pop]])
-    dev.off()
-    }
+  #for (pop in c(1:length(pies))){
+  #  png(file=paste0("./plots/",candidate,"/",names(pies[pop]),"_geno_piechart.png"))
+  #  print(pies[[pop]])
+  #  dev.off()
+  #  }
 }
 
 
 # Annotation Stacked Bar Plot VIS
-for (type in c("annotation", "EggNOG.GO.Biological")) {
+for (type in c("annotation", "Database_EggNOG_COG_Description")) {
   
-  if (type == "EggNOG.GO.Biological") {
+  if (type == "Database_EggNOG_COG_Description") {
     eggnog_biol <- binded_candidates %>% 
       dplyr::mutate(GO = gsub("(*),.*", "\\1", .data[[type]])) %>%
       filter(!is.na(GO)) %>% # remove rows with no Gene Ontology term

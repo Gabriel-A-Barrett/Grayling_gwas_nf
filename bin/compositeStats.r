@@ -43,7 +43,7 @@ lea <- read.table(lea,h=T,sep="")
 baypass <- read.table(baypass,sep="\t",h=T) #%>% select(!(ends_with("Pearson")))
 
 entap <- read.delim(entap, h=T, fill=T,sep="\t", na.strings=c("","NA"))  %>% 
-  select(feature_id=Query.Sequence,EggNOG.Predicted.Gene,EggNOG.Description,EggNOG.GO.Biological)
+  select(feature_id=Query_Sequence,Database_EggNOG_COG_Description,Database_EggNOG_Description,Database_EggNOG_GO_Molecular)
 
 vcfR_obj <- read.vcfR(vcf)
 vcfR_df <- vcfR2tidy(vcfR_obj)
@@ -105,8 +105,8 @@ SNPs_df %>%
   mutate(env = paste0(env), id = paste0(chrom_id,"_",pos)) %>%
   select(id, annotation, gene_name,
          annotation_impact,HGVS.p,
-         EggNOG.Predicted.Gene,EggNOG.Description,
-         EggNOG.GO.Biological,chrom,env,pvalue) %>% 
+         Database_EggNOG_COG_Description,Database_EggNOG_Description,Database_EggNOG_GO_Molecular,
+         chrom,env,pvalue) %>% 
   filter(pvalue < .000001) %>% 
   arrange(pvalue) %>%
   write.table(file=paste0(env,"_candidates.txt"),x=.,quote=FALSE,col.names=TRUE,row.names=TRUE,sep="\t")
@@ -139,14 +139,17 @@ manhattan <- ggplot(don, aes(x=BPcum, y=-log10(pvalue))) +
   # Show all points
   geom_point(aes(color=as.factor(chrom)), alpha=0.85, size=2.3) +
   # Rotate between grey and lightgrey colors
-  scale_color_manual(values = rep(c("dimgray", "gray47"), 22 )) +
+  scale_color_manual(values = rep(c("dimgray", "gray47"), 23 )) +
   #geom_point(data=subset(don, is_highlight=="yes"), color="orange", size=2.7) + 
   
   # custom X axis
   scale_x_continuous(label = axis_df$chrom, breaks= axis_df$center, expand=c(0,0)) + xlab("") + ylab("") +
   # Custom Y axis
-  scale_y_continuous(expand = c(0, 0), limits = c(min(-log10(don$pvalue)) -.25, max(-log10(don$pvalue)) + .5)) + ylab("") + ylab(paste0(env)) + #labs(subtitle=paste0("n = ",NumberOfIndividuals)) +  # remove space between plot area and x axis with expand ORIGINAL: max(don$harmony) + 1
-  
+  #scale_y_continuous(expand = c(0, 0), limits = c(min(-log10(don$pvalue)) -.25, max(-log10(don$pvalue)) + .5)) + ylab("") + ylab(paste0(env)) + #labs(subtitle=paste0("n = ",NumberOfIndividuals)) +  # remove space between plot area and x axis with expand ORIGINAL: max(don$harmony) + 1
+  scale_y_continuous(expand = c(0,0),limits = c(0, 60)) +
+  ylab(paste0(env)) +  
+
+
   # Custom the theme:
   theme_bw() +
   theme(
